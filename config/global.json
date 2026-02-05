@@ -1,0 +1,48 @@
+{
+  "bot_name": "MVP Trading Bot",
+  "version": "1.0.0",
+  "mode": "paper",
+  "logging": {
+    "level": "INFO",
+    "format": "json",
+    "output": "console",
+    "log_file": "logs/trading_bot.log"
+  },
+  "execution": {
+    "update_interval": 60,
+    "max_concurrent_orders": 5,
+    "order_timeout": 300,
+    "retry_attempts": 3,
+    "retry_delay": 5
+  },
+  "risk_management": {
+    "max_position_size": 1000,
+    "max_daily_loss": 500,
+    "max_open_positions": 5,
+    "position_size_type": "fixed",
+    "emergency_stop_loss": 10.0
+  },
+  "data": {
+    "timeframe": "1h",
+    "lookback_period": 100,
+    "data_source": "exchange"
+  },
+  "notifications": {
+    "enabled": false,
+    "channels": ["console"],
+    "events": ["trade_executed", "stop_loss_hit", "take_profit_hit", "error"]
+  },
+  "database": {
+    "enabled": true,
+    "type": "postgresql",
+    "track_trades": true,
+    "track_performance": true
+  },
+  "features": {
+    "enable_backtesting": true,
+    "enable_paper_trading": true,
+    "enable_live_trading": false,
+    "enable_api": true,
+    "enable_websockets": true
+  }
+}
