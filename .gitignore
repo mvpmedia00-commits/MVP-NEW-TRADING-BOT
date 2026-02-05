@@ -1,0 +1,87 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+*.env
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Trading data
+data/*
+!data/.gitkeep
+
+# Backtest results
+backtest_results/
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# User strategies (keep examples)
+user_strategies/*
+!user_strategies/README.md
+!user_strategies/custom_strategy_template.py
+!user_strategies/examples/
+
+# API Keys (extra safety)
+*api_key*
+*secret*
+*credentials*
+config/brokers/*.json
+!config/brokers/_template.json
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

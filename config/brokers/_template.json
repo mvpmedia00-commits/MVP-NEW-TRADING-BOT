@@ -1,0 +1,37 @@
+{
+  "name": "TEMPLATE_BROKER",
+  "type": "crypto",
+  "enabled": false,
+  "description": "Template configuration file for adding new brokers",
+  "api_credentials": {
+    "api_key": "",
+    "api_secret": "",
+    "passphrase": "",
+    "additional_fields": {}
+  },
+  "settings": {
+    "testnet": true,
+    "rate_limit": true,
+    "timeout": 30000,
+    "enable_rate_limit": true
+  },
+  "supported_pairs": [
+    "BTC/USDT",
+    "ETH/USDT"
+  ],
+  "trading_settings": {
+    "default_order_type": "limit",
+    "default_time_in_force": "GTC",
+    "enable_margin": false,
+    "enable_futures": false
+  },
+  "risk_management": {
+    "max_position_size": 1000,
+    "max_leverage": 1,
+    "stop_loss_percentage": 2.0,
+    "take_profit_percentage": 5.0
+  },
+  "custom_settings": {
+    "note": "Add any broker-specific settings here"
+  }
+}
