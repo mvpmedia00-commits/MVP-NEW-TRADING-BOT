@@ -33,6 +33,12 @@ api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
 # Load API key from environment
 VALID_API_KEY = os.getenv("API_KEY", "your-secret-api-key-change-this")
 
+# Warn if using default API key
+if VALID_API_KEY == "your-secret-api-key-change-this":
+    logger.warning(
+        "Using default API key! Set the API_KEY environment variable for production use."
+    )
+
 
 async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     """
