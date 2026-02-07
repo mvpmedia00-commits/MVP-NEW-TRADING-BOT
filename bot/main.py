@@ -5,6 +5,7 @@ Main trading bot application
 import time
 import signal
 import sys
+import argparse
 from typing import Dict, List, Any
 from datetime import datetime
 
@@ -118,11 +119,18 @@ class TradingBot:
             logger.error(f"Initialization failed: {e}", exc_info=True)
             return False
     
-    def start(self):
+    def start(self, test_connection_only=False):
         """Start the trading bot"""
         if not self.initialize():
             logger.error("Failed to initialize bot")
-            return
+            return False
+        
+        if test_connection_only:
+            logger.info("✅ Connection test successful!")
+            logger.info(f"Connected brokers: {list(self.brokers.keys())}")
+            logger.info(f"Initialized strategies: {list(self.strategies.keys())}")
+            self.stop()
+            return True
         
         logger.info("Starting trading bot...")
         self.running = True
@@ -136,6 +144,8 @@ class TradingBot:
             logger.error(f"Bot error: {e}", exc_info=True)
         finally:
             self.stop()
+        
+        return True
     
     def _run_cycle(self):
         """Execute one trading cycle"""
@@ -337,12 +347,27 @@ class TradingBot:
             logger.error(f"Error saving portfolio state: {e}")
         
         logger.info("Trading bot stopped")
+    parser = argparse.ArgumentParser(description='MVP Trading Bot')
+    parser.add_argument('--test-connection', action='store_true',
+                        help='Test broker connection and exit')
+    parser.add_argument('--paper-trading', action='store_true',
+                        help='Run in paper trading mode')
+    parser.add_argument('--dry-run', action='store_true',
+                        help='Dry run mode (no orders placed)')
     
-    def _signal_handler(self, signum, frame):
-        """Handle termination signals"""
-        logger.info(f"Received signal {signum}")
-        self.running = False
-
+    args = parser.parse_args()
+    
+    logger.info("=" * 60)
+    logger.info("MVP Trading Bot v1.0.0")
+    logger.info("=" * 60)
+    
+    bot = TradingBot()
+    
+    if args.test_connection:
+        success = bot.start(test_connection_only=True)
+        sys.exit(0 if success else 1)
+    else:
+    
 
 def main():
     """Main entry point"""
