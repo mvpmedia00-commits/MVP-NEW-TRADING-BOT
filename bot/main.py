@@ -347,6 +347,15 @@ class TradingBot:
             logger.error(f"Error saving portfolio state: {e}")
         
         logger.info("Trading bot stopped")
+    
+    def _signal_handler(self, signum, frame):
+        """Handle termination signals"""
+        logger.info(f"Received signal {signum}")
+        self.running = False
+
+
+def main():
+    """Main entry point"""
     parser = argparse.ArgumentParser(description='MVP Trading Bot')
     parser.add_argument('--test-connection', action='store_true',
                         help='Test broker connection and exit')
