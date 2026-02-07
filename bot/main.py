@@ -71,7 +71,7 @@ class TradingBot:
                 broker = broker_class(broker_config)
                 if broker.connect():
                     self.brokers[broker_name] = broker
-                    self.data_manager.add_broker(broker_name, broker)
+                    self.data_manager.set_broker(broker_name, broker)
                     logger.info(f"Successfully initialized broker: {broker_name}")
                 else:
                     logger.error(f"Failed to connect to broker: {broker_name}")
