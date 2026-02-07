@@ -8,6 +8,7 @@ import sys
 import argparse
 from typing import Dict, List, Any
 from datetime import datetime
+import pandas as pd
 
 from .utils import get_logger, ConfigLoader
 from .brokers import get_broker_class
@@ -191,30 +192,33 @@ class TradingBot:
         
         # Fetch market data
         data = self.data_manager.fetch_ohlcv(
-            broker_name,
-            symbol,
+            symbol=symbol,
             timeframe=self.global_config.get('data', {}).get('timeframe', '1h'),
-            limit=self.global_config.get('data', {}).get('lookback_period', 100)
+            limit=self.global_config.get('data', {}).get('lookback_period', 100),
+            broker_name=broker_name
         )
         
-        if data is None or data.empty:
+        if data is None or not data:
             logger.warning(f"No data available for {symbol}")
             return
         
+        # Convert to DataFrame for indicators calculation
+        df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        
         # Calculate indicators
-        data = strategy.calculate_indicators(data)
+        df = strategy.calculate_indicators(df)
         
         # Get current price
         ticker = broker.get_ticker(symbol)
         current_price = ticker.get('last', ticker.get('close', 0))
         
         # Check if should exit current position
-        if strategy.should_exit(data, current_price):
+        if strategy.should_exit(df, current_price):
             self._close_position(strategy_name, strategy, broker, symbol, current_price)
         
         # Check if should enter new position
-        elif strategy.should_enter(data):
-            signal = strategy.generate_signal(data)
+        elif strategy.should_enter(df):
+            signal = strategy.generate_signal(df)
             if signal in ['BUY', 'SELL']:
                 self._open_position(strategy_name, strategy, broker, symbol, signal, current_price)
     
