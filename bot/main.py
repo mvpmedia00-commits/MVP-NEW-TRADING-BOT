@@ -158,7 +158,7 @@ class TradingBot:
                     logger.error(f"Error executing strategy {strategy_name}: {e}", exc_info=True)
             
             # Log portfolio status
-            status = self.portfolio.get_status()
+            status = self.portfolio.to_dict()
             logger.debug(f"Portfolio value: {status.get('total_value', 0)}")
             
         except Exception as e:
@@ -180,7 +180,7 @@ class TradingBot:
         broker = self.brokers[broker_name]
         
         # Fetch market data
-        data = self.data_manager.get_ohlcv(
+        data = self.data_manager.fetch_ohlcv(
             broker_name,
             symbol,
             timeframe=self.global_config.get('data', {}).get('timeframe', '1h'),
@@ -331,7 +331,7 @@ class TradingBot:
         
         # Save portfolio state
         try:
-            portfolio_state = self.portfolio.get_status()
+            portfolio_state = self.portfolio.to_dict()
             logger.info(f"Final portfolio state: {portfolio_state}")
         except Exception as e:
             logger.error(f"Error saving portfolio state: {e}")
