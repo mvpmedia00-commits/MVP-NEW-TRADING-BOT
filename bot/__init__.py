@@ -8,7 +8,7 @@ __author__ = 'MVP Trading Bot Team'
 from .utils import get_logger, ConfigLoader
 from .brokers import BaseBroker, BinanceBroker, CoinbaseBroker, GeminiBroker, MT4Broker
 from .strategies import BaseStrategy
-from .core import Portfolio, RiskManager, OrderManager, DataManager
+from .core import PortfolioManager, RiskManager, OrderManager, DataManager
 
 __all__ = [
     'get_logger',
@@ -19,7 +19,7 @@ __all__ = [
     'GeminiBroker',
     'MT4Broker',
     'BaseStrategy',
-    'Portfolio',
+    'PortfolioManager',
     'RiskManager',
     'OrderManager',
     'DataManager',
