@@ -138,9 +138,18 @@ class TradingBot:
         
         try:
             while self.running:
-                self._run_cycle()
-                time.sleep(self.update_interval)
-                
+                try:
+                    self._run_cycle()
+                    # Use small sleep intervals so Ctrl+C works faster
+                    for _ in range(int(self.update_interval)):
+                        if not self.running:
+                            break
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    logger.info("Keyboard interrupt received")
+                    self.running = False
+                    break
+                    
         except Exception as e:
             logger.error(f"Bot error: {e}", exc_info=True)
         finally:
@@ -356,6 +365,8 @@ class TradingBot:
         """Handle termination signals"""
         logger.info(f"Received signal {signum}")
         self.running = False
+        # Raise KeyboardInterrupt to break out of sleep
+        raise KeyboardInterrupt("Signal received")
 
 
 def main():
