@@ -7,13 +7,15 @@ from .binance_broker import BinanceBroker
 from .coinbase_broker import CoinbaseBroker
 from .gemini_broker import GeminiBroker
 from .mt4_broker import MT4Broker
+from .cryptocom_broker import CryptocomBroker
 
 __all__ = [
     'BaseBroker',
     'BinanceBroker',
     'CoinbaseBroker',
     'GeminiBroker',
-    'MT4Broker'
+    'MT4Broker',
+    'CryptocomBroker'
 ]
 
 
@@ -35,6 +37,8 @@ def get_broker_class(broker_name: str):
         'gemini': GeminiBroker,
         'mt4': MT4Broker,
         'metatrader4': MT4Broker,
+        'cryptocom': CryptocomBroker,
+        'crypto.com': CryptocomBroker,
     }
     
     return broker_map.get(broker_name.lower())

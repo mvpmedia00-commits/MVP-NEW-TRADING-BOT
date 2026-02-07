@@ -1,0 +1,21 @@
+[Unit]
+Description=MVP Trading Bot API Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/MVP-NEW-TRADING-BOT
+Environment="PATH=/home/ubuntu/MVP-NEW-TRADING-BOT/venv/bin"
+ExecStart=/home/ubuntu/MVP-NEW-TRADING-BOT/venv/bin/gunicorn api.server:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
