@@ -11,13 +11,15 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, status, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from api.models.schemas import ErrorResponse, HealthCheck
 from api.routes import portfolio, trades, strategies, control
+from api import dashboard_api
 
 # Configure logging
 logging.basicConfig(
@@ -245,6 +247,32 @@ app.include_router(
     tags=["Control"],
     dependencies=[Depends(verify_api_key)]
 )
+
+# Include dashboard router (no API key required for dashboard)
+app.include_router(
+    dashboard_api.router,
+    tags=["Dashboard"]
+)
+
+
+# Serve static files (dashboard HTML, CSS, JS)
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
+# Dashboard route - serve index.html
+@app.get("/dashboard")
+async def serve_dashboard():
+    """Serve the trading bot dashboard."""
+    dashboard_html = os.path.join(static_dir, "index.html")
+    if os.path.exists(dashboard_html):
+        return FileResponse(dashboard_html)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dashboard not found"
+        )
 
 
 if __name__ == "__main__":
