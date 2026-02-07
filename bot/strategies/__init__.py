@@ -20,4 +20,28 @@ __all__ = [
     'RSIBBStrategy',
     'MACDStrategy',
     'EMAStrategy',
+    'get_strategy_class',
 ]
+
+
+def get_strategy_class(strategy_name: str):
+    """
+    Get the strategy class for a given strategy name
+    
+    Args:
+        strategy_name: Name of the strategy (e.g., 'sma_crossover', 'rsi_bb')
+        
+    Returns:
+        Strategy class
+    """
+    strategy_map = {
+        'sma_crossover': SMACrossoverStrategy,
+        'sma': SMACrossoverStrategy,
+        'rsi_bb': RSIBBStrategy,
+        'rsi_bollinger': RSIBBStrategy,
+        'macd': MACDStrategy,
+        'ema': EMAStrategy,
+    }
+    
+    return strategy_map.get(strategy_name.lower())
+

@@ -11,7 +11,7 @@ from datetime import datetime
 from .utils import get_logger, ConfigLoader
 from .brokers import get_broker_class
 from .strategies import get_strategy_class
-from .core import Portfolio, RiskManager, OrderManager, DataManager
+from .core import PortfolioManager, RiskManager, OrderManager, DataManager
 
 logger = get_logger(__name__)
 
@@ -35,7 +35,7 @@ class TradingBot:
         # Initialize components
         self.brokers = {}
         self.strategies = {}
-        self.portfolio = Portfolio(mode=self.mode)
+        self.portfolio = PortfolioManager(mode=self.mode)
         self.risk_manager = RiskManager(self.global_config.get('risk_management', {}))
         self.order_manager = OrderManager(mode=self.mode)
         self.data_manager = DataManager()
