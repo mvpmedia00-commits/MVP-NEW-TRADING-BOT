@@ -367,16 +367,7 @@ class TradingBot:
         success = bot.start(test_connection_only=True)
         sys.exit(0 if success else 1)
     else:
-    
-
-def main():
-    """Main entry point"""
-    logger.info("=" * 60)
-    logger.info("MVP Trading Bot v1.0.0")
-    logger.info("=" * 60)
-    
-    bot = TradingBot()
-    bot.start()
+        bot.start()
 
 
 if __name__ == '__main__':
