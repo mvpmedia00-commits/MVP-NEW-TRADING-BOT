@@ -28,7 +28,7 @@ def set_bot_instance(bot):
     if hasattr(bot, 'trade_state_manager'):
         monitoring.set_monitoring_components(
             trade_state_manager=bot.trade_state_manager,
-            risk_engine_v2=bot.risk_engine_v2,
+            risk_engine_v2=bot.risk_engine,
             execution_guardrails=bot.execution_guardrails,
             range_analyzer=bot.range_analyzer,
             broker=bot.brokers,
