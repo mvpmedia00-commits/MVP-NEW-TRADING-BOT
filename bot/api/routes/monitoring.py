@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 import pandas as pd
+import os
 import threading
 
 from ...core import (
@@ -200,13 +201,13 @@ async def get_range_analysis(symbol: str) -> Dict[str, Any]:
             "range_position": analysis.get("range_position", 0),
             "volatility_pct": analysis.get("volatility_pct", 0),
             "zone": analysis.get("zone", "UNKNOWN"),
-            "can_trade": can_trade,
+            "can_trade": bool(can_trade),
             "trade_reason": reason,
-            "should_exit": should_exit,
+            "should_exit": bool(should_exit),
             "exit_reason": exit_reason,
-            "chop_detected": analysis.get("is_chop", False),
-            "exhaustion_detected": analysis.get("is_exhaustion", False),
-            "range_expanding": analysis.get("expansion_level", 1.0) > 1.0,
+            "chop_detected": bool(analysis.get("is_chop", False)),
+            "exhaustion_detected": bool(analysis.get("is_exhaustion", False)),
+            "range_expanding": bool(analysis.get("expansion_level", 1.0) > 1.0),
             "current_price": current_price,
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -512,6 +513,31 @@ async def get_health() -> Dict[str, Any]:
         "last_error": _bot_instance.last_error if _bot_instance else None,
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@router.get("/logs")
+async def get_logs(lines: int = Query(200, description="Number of log lines")) -> Dict[str, Any]:
+    """
+    Return the last N lines of the bot log file.
+    """
+    lines = max(1, min(lines, 1000))
+    log_path = "logs/bot.log"
+    if not os.path.exists(log_path):
+        return {"error": "Log file not found", "path": log_path}
+
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
+            content = f.readlines()
+        tail = content[-lines:]
+        return {
+            "lines": [line.rstrip("\n") for line in tail],
+            "count": len(tail),
+            "path": log_path,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Error reading logs: {e}")
+        return {"error": str(e)}
 
 
 @router.post("/control/pause")

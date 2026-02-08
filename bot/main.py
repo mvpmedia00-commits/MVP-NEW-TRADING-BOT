@@ -12,6 +12,7 @@ from datetime import datetime
 import pandas as pd
 
 from .utils import get_logger, ConfigLoader
+from .utils.trade_logger import TradeLogger
 from .brokers import get_broker_class
 from .strategies import get_strategy_class
 from .core import (
@@ -63,6 +64,10 @@ class TradingBot:
         self.range_analyzer = RangeAnalyzer(
             self.global_config.get('range_engine', {})
         )
+
+        # CSV trade logger
+        log_path = self.global_config.get("logging", {}).get("trade_csv", "logs/trades.csv")
+        self.trade_logger = TradeLogger(log_path)
         
         # Runtime state
         self.running = False
@@ -351,6 +356,13 @@ class TradingBot:
                     
                     # Persist to database
                     self.persistence.save_position(symbol, signal, current_price, qty, broker_name)
+                    self.trade_logger.log("OPEN", {
+                        "symbol": symbol,
+                        "side": signal,
+                        "entry_price": current_price,
+                        "quantity": qty,
+                        "broker": broker_name,
+                    })
                     
                     logger.info(
                         f"✅ TRADE OPENED | {symbol} {signal} {qty:.4f} @ ${current_price:.2f} | "
@@ -415,6 +427,17 @@ class TradingBot:
                         
                         # Persist to database
                         self.persistence.close_position(symbol, exit_price, closed_trade.pnl)
+                        self.trade_logger.log("CLOSE", {
+                            "symbol": symbol,
+                            "side": closed_trade.direction,
+                            "entry_price": closed_trade.entry_price,
+                            "exit_price": exit_price,
+                            "quantity": closed_trade.position_size,
+                            "pnl": closed_trade.pnl,
+                            "pnl_pct": closed_trade.pnl_pct,
+                            "broker": broker_name,
+                            "reason": exit_reason,
+                        })
                         
                         logger.info(
                             f"✅ TRADE CLOSED | {symbol} {closed_trade.direction} | "

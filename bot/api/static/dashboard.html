@@ -478,6 +478,13 @@
                 </div>
                 <div class="refresh-time">Last refreshed: <span id="alerts-time">--:--:--</span></div>
             </div>
+
+            <!-- Logs Panel -->
+            <div class="panel panel-full">
+                <div class="panel-title">🧾 Bot Logs</div>
+                <div id="logs-container" style="font-family: 'Courier New', monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap;"></div>
+                <div class="refresh-time">Last refreshed: <span id="logs-time">--:--:--</span></div>
+            </div>
         </div>
     </div>
 
@@ -657,6 +664,24 @@
             }
         }
 
+        async function updateLogs() {
+            try {
+                const response = await fetch(`${API_BASE}/logs?lines=200`);
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('logs-container').textContent = data.error;
+                    updateTime('logs-time');
+                    return;
+                }
+
+                document.getElementById('logs-container').textContent = (data.lines || []).join('\n');
+                updateTime('logs-time');
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
         async function updateStatus() {
             try {
                 const response = await fetch(`${API_BASE}/health`);
@@ -761,6 +786,7 @@
             updateRangeAnalysis();
             updateActiveTrades();
             updateAlerts();
+            updateLogs();
             setupControls();
             
             // Refresh every 10 seconds
@@ -772,6 +798,7 @@
                 updateRangeAnalysis();
                 updateActiveTrades();
                 updateAlerts();
+                updateLogs();
             }, REFRESH_INTERVAL);
         }
 
