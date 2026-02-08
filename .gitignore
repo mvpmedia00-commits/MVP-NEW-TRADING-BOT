@@ -78,7 +78,9 @@ user_strategies/*
 *api_key*
 *secret*
 *credentials*
+!config/brokers/gemini.json
 config/brokers/*.json
+!config/brokers/gemini.json
 !config/brokers/_template.json
 
 # Temporary files

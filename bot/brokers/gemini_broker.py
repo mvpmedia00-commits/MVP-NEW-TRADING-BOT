@@ -3,6 +3,7 @@ Gemini broker implementation
 """
 
 import ccxt
+import time
 from typing import Dict, List, Any, Optional
 
 from .base_broker import BaseBroker
@@ -39,6 +40,8 @@ class GeminiBroker(BaseBroker):
             }
             
             self.exchange = ccxt.gemini(exchange_params)
+            # Gemini expects nonce in seconds, not milliseconds
+            self.exchange.nonce = lambda: int(time.time())
             
             # Use sandbox if configured
             if settings.get('testnet', True):
@@ -60,7 +63,11 @@ class GeminiBroker(BaseBroker):
     def disconnect(self):
         """Disconnect from Gemini"""
         if self.exchange:
-            self.exchange.close()
+            try:
+                if hasattr(self.exchange, "close"):
+                    self.exchange.close()
+            except Exception as e:
+                logger.warning(f"Error closing exchange connection: {e}")
             self.exchange = None
             logger.info("Disconnected from Gemini")
     

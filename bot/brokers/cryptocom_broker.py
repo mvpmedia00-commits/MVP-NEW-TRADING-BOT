@@ -60,7 +60,11 @@ class CryptocomBroker(BaseBroker):
     def disconnect(self):
         """Disconnect from Crypto.com"""
         if self.exchange:
-            self.exchange.close()
+            try:
+                if hasattr(self.exchange, "close"):
+                    self.exchange.close()
+            except Exception as e:
+                logger.warning(f"Error closing exchange connection: {e}")
             self.exchange = None
             logger.info("Disconnected from Crypto.com")
     

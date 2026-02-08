@@ -448,7 +448,7 @@ class TradingBot:
                 f"Trades: {trade_stats['total_trades']} "
                 f"(W:{trade_stats['winning_trades']} L:{trade_stats['losing_trades']}) | "
                 f"Exposure: ${exposure['total_exposure']:.0f} | "
-                f"Exec rate: {100-exec_stats['rejection_rate']:.1f}%"
+                f"Exec rate: {100-exec_stats.get('rejection_rate', 0):.1f}%"
             )
         except Exception as e:
             logger.error(f"Error logging stats: {e}")
