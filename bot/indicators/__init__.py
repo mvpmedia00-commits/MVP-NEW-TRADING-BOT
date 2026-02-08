@@ -240,8 +240,9 @@ class LGMIndicatorEngine:
 
     def _get_trading_day(self, est_time):
         """Determine trading day (resets at 5 PM EST)."""
+        from datetime import timedelta
         # Trading day starts at 5 PM EST previous calendar day
         if est_time.hour >= 17:
             return est_time.date()
         else:
-            return (est_time.date() - pd.Timedelta(days=1)).date()
+            return est_time.date() - timedelta(days=1)
