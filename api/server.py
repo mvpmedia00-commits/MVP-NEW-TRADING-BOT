@@ -21,6 +21,15 @@ from api.models.schemas import ErrorResponse, HealthCheck
 from api.routes import portfolio, trades, strategies, control
 from api import dashboard_api
 
+# Import bot
+import sys
+import threading
+from pathlib import Path
+
+# Add parent directory to path for bot imports
+bot_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(bot_dir))
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -75,10 +84,47 @@ async def lifespan(app: FastAPI):
     logger.info(f"API Version: {app.version}")
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
     
+    # Initialize and start the bot
+    bot_instance = None
+    bot_thread = None
+    
+    try:
+        from bot.main import TradingBot
+        import argparse
+        
+        # Create bot in paper trading mode
+        logger.info("Initializing trading bot...")
+        bot_instance = TradingBot(paper_trading=True)
+        bot_instance.initialize()
+        
+        # Set bot instance in dashboard API
+        dashboard_api.set_bot_instance(bot_instance)
+        logger.info("Bot instance set in dashboard API")
+        
+        # Start bot in background thread
+        def run_bot():
+            try:
+                bot_instance.start()
+            except Exception as e:
+                logger.error(f"Bot error: {e}", exc_info=True)
+        
+        bot_thread = threading.Thread(target=run_bot, daemon=True)
+        bot_thread.start()
+        logger.info("Trading bot started in background thread")
+        
+    except Exception as e:
+        logger.error(f"Failed to initialize bot: {e}", exc_info=True)
+    
     yield
     
     # Shutdown
     logger.info("Shutting down Trading Bot API server...")
+    if bot_instance:
+        try:
+            logger.info("Stopping trading bot...")
+            bot_instance.stop()
+        except Exception as e:
+            logger.error(f"Error stopping bot: {e}", exc_info=True)
 
 
 # Create FastAPI application
