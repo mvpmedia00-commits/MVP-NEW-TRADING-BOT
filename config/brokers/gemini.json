@@ -1,0 +1,37 @@
+{
+  "name": "gemini",
+  "type": "crypto",
+  "enabled": true,
+  "description": "Gemini Exchange configuration",
+  "api_credentials": {
+    "api_key": "${GEMINI_API_KEY}",
+    "api_secret": "${GEMINI_API_SECRET}"
+    "passphrase": "",
+    "additional_fields": {}
+  },
+  "settings": {
+    "testnet": true,
+    "rate_limit": true,
+    "timeout": 30000,
+    "enable_rate_limit": true
+  },
+  "supported_pairs": [
+    "BTC/USD",
+    "ETH/USD",
+    "LTC/USD",
+    "BCH/USD",
+    "LINK/USD"
+  ],
+  "trading_settings": {
+    "default_order_type": "limit",
+    "default_time_in_force": "GTC",
+    "enable_margin": false,
+    "enable_futures": false
+  },
+  "risk_management": {
+    "max_position_size": 1000,
+    "max_leverage": 1,
+    "stop_loss_percentage": 2.0,
+    "take_profit_percentage": 5.0
+  }
+}
