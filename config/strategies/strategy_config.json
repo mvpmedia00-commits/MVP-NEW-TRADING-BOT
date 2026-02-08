@@ -1,7 +1,8 @@
 {
   "active_strategies": [
     "sma_crossover",
-    "rsi_bb"
+    "rsi_bb",
+    "vg_extreme_range"
   ],
   "strategies": {
     "sma_crossover": {
@@ -54,6 +55,19 @@
         "medium_period": 21,
         "long_period": 50,
         "symbol": "ETH/USDT"
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_extreme_range": {
+      "enabled": true,
+      "parameters": {
+        "range_lookback": 50,
+        "ema_period": 20,
+        "symbol": "BTC/USDT"
       },
       "risk_settings": {
         "position_size": 100,

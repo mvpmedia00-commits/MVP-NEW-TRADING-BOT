@@ -13,6 +13,7 @@ from .sma_crossover import SMACrossoverStrategy
 from .rsi_bb import RSIBBStrategy
 from .macd_strategy import MACDStrategy
 from .ema_strategy import EMAStrategy
+from .vg_extreme_range import VGExtremeRangeStrategy
 
 __all__ = [
     'BaseStrategy',
@@ -20,6 +21,7 @@ __all__ = [
     'RSIBBStrategy',
     'MACDStrategy',
     'EMAStrategy',
+    'VGExtremeRangeStrategy',
     'get_strategy_class',
 ]
 
@@ -41,6 +43,8 @@ def get_strategy_class(strategy_name: str):
         'rsi_bollinger': RSIBBStrategy,
         'macd': MACDStrategy,
         'ema': EMAStrategy,
+        'vg_extreme_range': VGExtremeRangeStrategy,
+        'vg': VGExtremeRangeStrategy,
     }
     
     return strategy_map.get(strategy_name.lower())
