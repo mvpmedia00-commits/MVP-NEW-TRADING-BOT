@@ -144,7 +144,7 @@ async def get_risk_exposure() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-@router.get("/ranges/{symbol}")
+@router.get("/ranges/{symbol:path}")
 async def get_range_analysis(symbol: str) -> Dict[str, Any]:
     """
     Get range analysis for a specific symbol
