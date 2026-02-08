@@ -205,3 +205,155 @@ async def health_check():
         "status": "ok",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+
+@router.get("/api/dashboard/portfolio-history")
+async def get_portfolio_history():
+    """Get portfolio value history for chart"""
+    if not _bot_instance:
+        raise HTTPException(status_code=500, detail="Bot not initialized")
+    
+    try:
+        # Mock data for now - in production this would come from database
+        portfolio = _bot_instance.portfolio.to_dict()
+        current_value = portfolio.get('performance', {}).get('current_value', 10000)
+        
+        # Generate last 24 hours of mock data
+        import random
+        history = []
+        base_value = current_value
+        for i in range(24, 0, -1):
+            timestamp = (datetime.utcnow() - timedelta(hours=i)).isoformat()
+            value = base_value + random.uniform(-200, 200)
+            history.append({
+                "timestamp": timestamp,
+                "value": round(value, 2)
+            })
+        
+        # Add current value
+        history.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "value": round(current_value, 2)
+        })
+        
+        return {
+            "success": True,
+            "data": history,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/dashboard/pnl-history")
+async def get_pnl_history():
+    """Get P&L history for chart"""
+    if not _bot_instance:
+        raise HTTPException(status_code=500, detail="Bot not initialized")
+    
+    try:
+        portfolio = _bot_instance.portfolio.to_dict()
+        current_pnl = portfolio.get('performance', {}).get('total_pnl', 0)
+        
+        # Mock P&L history
+        import random
+        history = []
+        cumulative_pnl = 0
+        for i in range(24, 0, -1):
+            timestamp = (datetime.utcnow() - timedelta(hours=i)).isoformat()
+            change = random.uniform(-50, 50)
+            cumulative_pnl += change
+            history.append({
+                "timestamp": timestamp,
+                "pnl": round(cumulative_pnl, 2)
+            })
+        
+        history.append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "pnl": round(current_pnl, 2)
+        })
+        
+        return {
+            "success": True,
+            "data": history,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/dashboard/trade-distribution")
+async def get_trade_distribution():
+    """Get win/loss distribution for pie chart"""
+    if not _bot_instance:
+        raise HTTPException(status_code=500, detail="Bot not initialized")
+    
+    try:
+        portfolio = _bot_instance.portfolio.to_dict()
+        performance = portfolio.get('performance', {})
+        
+        winning_trades = performance.get('winning_trades', 0)
+        losing_trades = performance.get('losing_trades', 0)
+        
+        return {
+            "success": True,
+            "data": {
+                "winning_trades": winning_trades,
+                "losing_trades": losing_trades,
+                "total_trades": winning_trades + losing_trades
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/dashboard/price-data")
+async def get_price_data(symbol: str = "BTC/USDT", timeframe: str = "1h", limit: int = 50):
+    """Get candlestick price data with strategy signals"""
+    if not _bot_instance:
+        raise HTTPException(status_code=500, detail="Bot not initialized")
+    
+    try:
+        # Try to get data from broker
+        if _bot_instance.brokers:
+            broker_name = list(_bot_instance.brokers.keys())[0]
+            broker = _bot_instance.brokers[broker_name]
+            
+            # Mock candlestick data - in production get from broker
+            import random
+            candles = []
+            base_price = 45000 if "BTC" in symbol else 2500
+            
+            for i in range(limit, 0, -1):
+                timestamp = (datetime.utcnow() - timedelta(hours=i)).isoformat()
+                open_price = base_price + random.uniform(-500, 500)
+                close_price = open_price + random.uniform(-200, 200)
+                high_price = max(open_price, close_price) + random.uniform(0, 100)
+                low_price = min(open_price, close_price) - random.uniform(0, 100)
+                
+                candles.append({
+                    "timestamp": timestamp,
+                    "open": round(open_price, 2),
+                    "high": round(high_price, 2),
+                    "low": round(low_price, 2),
+                    "close": round(close_price, 2),
+                    "volume": round(random.uniform(100, 1000), 2),
+                    "signal": random.choice([None, None, None, "BUY", "SELL"])  # Sparse signals
+                })
+                base_price = close_price
+            
+            return {
+                "success": True,
+                "data": {
+                    "symbol": symbol,
+                    "timeframe": timeframe,
+                    "candles": candles
+                },
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            raise HTTPException(status_code=500, detail="No brokers connected")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
