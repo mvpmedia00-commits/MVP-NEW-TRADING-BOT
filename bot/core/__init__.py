@@ -13,6 +13,7 @@ from .trade_state_manager import TradeStateManager, TradeState, TradeLifecycle
 from .risk_engine_v2 import RiskEngineV2, ASSET_RISK_TIERS
 from .execution_guardrails_manager import ExecutionGuardrailsManagerV2
 from .range_engine import RangeAnalyzer, ZoneClassifier
+from .backtest_engine import BacktestEngine, BacktestMetrics
 
 __all__ = [
     'PortfolioManager',
@@ -27,4 +28,6 @@ __all__ = [
     'ExecutionGuardrailsManagerV2',
     'RangeAnalyzer',
     'ZoneClassifier',
+    'BacktestEngine',
+    'BacktestMetrics',
 ]
