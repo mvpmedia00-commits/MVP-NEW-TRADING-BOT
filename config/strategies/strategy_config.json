@@ -1,12 +1,15 @@
 {
   "active_strategies": [
-    "sma_crossover",
-    "rsi_bb",
-    "vg_extreme_range"
+    "vg_crypto_btc",
+    "vg_crypto_eth",
+    "vg_crypto_xrp",
+    "vg_crypto_doge",
+    "vg_crypto_shib",
+    "vg_crypto_trump"
   ],
   "strategies": {
     "sma_crossover": {
-      "enabled": true,
+      "enabled": false,
       "parameters": {
         "fast_period": 10,
         "slow_period": 30,
@@ -19,7 +22,7 @@
       }
     },
     "rsi_bb": {
-      "enabled": true,
+      "enabled": false,
       "parameters": {
         "rsi_period": 14,
         "rsi_overbought": 70,
@@ -63,7 +66,7 @@
       }
     },
     "vg_extreme_range": {
-      "enabled": true,
+      "enabled": false,
       "parameters": {
         "range_lookback": 50,
         "ema_period": 20,
@@ -72,6 +75,122 @@
       "risk_settings": {
         "position_size": 100,
         "stop_loss_pct": 2.0,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_eth": {
+      "enabled": false,
+      "parameters": {
+        "range_lookback": 50,
+        "ema_period": 20,
+        "symbol": "ETH/USDT"
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_sol": {
+      "enabled": false,
+      "parameters": {
+        "range_lookback": 50,
+        "ema_period": 20,
+        "symbol": "SOL/USDT"
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 2.0,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_crypto_btc": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "BTC",
+        "session_lookback": 96,
+        "ema_period": 20,
+        "cooldown_candles": 8,
+        "volatility_threshold": 0.10
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 0.75,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_crypto_eth": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "ETH",
+        "session_lookback": 96,
+        "ema_period": 20,
+        "cooldown_candles": 8,
+        "volatility_threshold": 0.10
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 0.75,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_crypto_xrp": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "XRP",
+        "session_lookback": 96,
+        "ema_period": 20,
+        "cooldown_candles": 8,
+        "volatility_threshold": 0.10
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 0.50,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_crypto_doge": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "DOGE",
+        "session_lookback": 96,
+        "ema_period": 20,
+        "cooldown_candles": 8,
+        "volatility_threshold": 0.10
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 0.30,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_crypto_shib": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "SHIB",
+        "session_lookback": 96,
+        "ema_period": 20,
+        "cooldown_candles": 8,
+        "volatility_threshold": 0.10
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 0.20,
+        "take_profit_pct": 5.0
+      }
+    },
+    "vg_crypto_trump": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "TRUMP",
+        "session_lookback": 96,
+        "ema_period": 20,
+        "cooldown_candles": 8,
+        "volatility_threshold": 0.10
+      },
+      "risk_settings": {
+        "position_size": 100,
+        "stop_loss_pct": 0.10,
         "take_profit_pct": 5.0
       }
     }

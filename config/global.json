@@ -13,7 +13,24 @@
     "max_concurrent_orders": 5,
     "order_timeout": 300,
     "retry_attempts": 3,
-    "retry_delay": 5
+    "retry_delay": 5,
+    "fill_timeout": 5,
+    "max_retries": 3
+  },
+  "trade_management": {
+    "cooldown_candles": 8,
+    "checkpoint_1_candles": 6,
+    "checkpoint_2_candles": 12,
+    "max_candles_in_trade": 50
+  },
+  "range_engine": {
+    "session_lookback": 96,
+    "min_range_pct": 0.5,
+    "chop_threshold_pct": 1.0,
+    "exhaustion_threshold_pct": 10.0,
+    "entry_zone_percent_majors": 20,
+    "entry_zone_percent_memes": 15,
+    "position_top_threshold": 0.85
   },
   "risk_management": {
     "max_position_size": 1000,
