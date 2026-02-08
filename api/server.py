@@ -90,11 +90,10 @@ async def lifespan(app: FastAPI):
     
     try:
         from bot.main import TradingBot
-        import argparse
         
-        # Create bot in paper trading mode
+        # Create bot (mode is read from config/global.json)
         logger.info("Initializing trading bot...")
-        bot_instance = TradingBot(paper_trading=True)
+        bot_instance = TradingBot()
         bot_instance.initialize()
         
         # Set bot instance in dashboard API
