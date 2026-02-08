@@ -34,6 +34,7 @@ def set_bot_instance(bot):
             broker=bot.brokers,
             data_manager=bot.data_manager,
         )
+    monitoring.set_bot_instance(bot)
 
 
 @asynccontextmanager
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI):
                 daemon=True,
             )
             _bot_thread.start()
+            monitoring.set_bot_instance(_bot_instance, _bot_thread)
             print("✅ Bot auto-started for API monitoring")
         else:
             print("❌ Bot auto-start failed - check logs")

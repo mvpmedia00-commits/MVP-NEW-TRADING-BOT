@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from .base_strategy import BaseStrategy
+from ..indicators import LGMIndicatorEngine
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -67,11 +68,16 @@ class LGMStrategy(BaseStrategy):
         self._active_trade: Optional[LgmTradeState] = None
         self._last_confidence: Optional[str] = None
         self._reduce_size_today = False
+        indicator_settings = {}
+        indicator_settings.update(self.config.get("indicator_settings", {}))
+        indicator_settings.update(self.config.get("lgm_indicators", {}))
+        indicator_settings.update(self.parameters)
+        self._indicator_engine = LGMIndicatorEngine(indicator_settings)
 
         logger.info(f"LGMStrategy initialized for {self.symbol}")
 
     def calculate_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
-        return data.copy()
+        return self._indicator_engine.enrich(data.copy())
 
     def generate_signal(self, data: pd.DataFrame) -> str:
         df = self.calculate_indicators(data)

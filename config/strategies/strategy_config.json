@@ -1,11 +1,7 @@
 {
   "active_strategies": [
     "lgm_btc",
-    "lgm_eth",
-    "lgm_xrp",
-    "lgm_doge",
-    "lgm_shib",
-    "lgm_trump"
+    "lgm_eth"
   ],
   "strategies": {
     "sma_crossover": {
@@ -13,7 +9,7 @@
       "parameters": {
         "fast_period": 10,
         "slow_period": 30,
-        "symbol": "BTC/USDT"
+        "symbol": "BTC/USD"
       },
       "risk_settings": {
         "position_size": 100,
@@ -29,7 +25,7 @@
         "rsi_oversold": 30,
         "bb_period": 20,
         "bb_std": 2,
-        "symbol": "ETH/USDT"
+        "symbol": "ETH/USD"
       },
       "risk_settings": {
         "position_size": 100,
@@ -96,26 +92,11 @@
       "parameters": {
         "range_lookback": 50,
         "ema_period": 20,
-        "symbol": "SOL/USDT"
+        "symbol": "SOL/USD"
       },
       "risk_settings": {
         "position_size": 100,
         "stop_loss_pct": 2.0,
-        "take_profit_pct": 5.0
-      }
-    },
-    "vg_crypto_btc": {
-      "enabled": true,
-      "parameters": {
-        "symbol": "BTC/USDT",
-        "session_lookback": 96,
-        "ema_period": 20,
-        "cooldown_candles": 8,
-        "volatility_threshold": 0.10
-      },
-      "risk_settings": {
-        "position_size": 100,
-        "stop_loss_pct": 0.75,
         "take_profit_pct": 5.0
       }
     },
@@ -137,7 +118,7 @@
     "vg_crypto_xrp": {
       "enabled": true,
       "parameters": {
-        "symbol": "XRP/USDT",
+        "symbol": "XRP/USD",
         "session_lookback": 96,
         "ema_period": 20,
         "cooldown_candles": 8,
@@ -152,7 +133,7 @@
     "vg_crypto_doge": {
       "enabled": true,
       "parameters": {
-        "symbol": "DOGE/USDT",
+        "symbol": "DOGE/USD",
         "session_lookback": 96,
         "ema_period": 20,
         "cooldown_candles": 8,
@@ -167,7 +148,7 @@
     "vg_crypto_shib": {
       "enabled": true,
       "parameters": {
-        "symbol": "SHIB/USDT",
+        "symbol": "SHIB/USD",
         "session_lookback": 96,
         "ema_period": 20,
         "cooldown_candles": 8,
@@ -197,7 +178,7 @@
     "lgm_btc": {
       "enabled": true,
       "parameters": {
-        "symbol": "BTC/USDT",
+          "symbol": "BTC/USD",
         "timezone": "US/Eastern",
         "killzone_start": "02:00",
         "killzone_end": "12:00",
@@ -217,7 +198,7 @@
     "lgm_eth": {
       "enabled": true,
       "parameters": {
-        "symbol": "ETH/USDT",
+          "symbol": "ETH/USD",
         "timezone": "US/Eastern",
         "killzone_start": "02:00",
         "killzone_end": "12:00",
@@ -237,7 +218,7 @@
     "lgm_xrp": {
       "enabled": true,
       "parameters": {
-        "symbol": "XRP/USDT",
+          "symbol": "XRP/USD",
         "timezone": "US/Eastern",
         "killzone_start": "02:00",
         "killzone_end": "12:00",
@@ -257,7 +238,7 @@
     "lgm_doge": {
       "enabled": true,
       "parameters": {
-        "symbol": "DOGE/USDT",
+          "symbol": "DOGE/USD",
         "timezone": "US/Eastern",
         "killzone_start": "02:00",
         "killzone_end": "12:00",
@@ -277,7 +258,7 @@
     "lgm_shib": {
       "enabled": true,
       "parameters": {
-        "symbol": "SHIB/USDT",
+          "symbol": "SHIB/USD",
         "timezone": "US/Eastern",
         "killzone_start": "02:00",
         "killzone_end": "12:00",
@@ -297,7 +278,7 @@
     "lgm_trump": {
       "enabled": true,
       "parameters": {
-        "symbol": "TRUMP/USDT",
+          "symbol": "TRUMP/USD",
         "timezone": "US/Eastern",
         "killzone_start": "02:00",
         "killzone_end": "12:00",

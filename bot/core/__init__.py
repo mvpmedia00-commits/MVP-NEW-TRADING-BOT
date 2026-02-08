@@ -13,6 +13,8 @@ from .trade_state_manager import TradeStateManager, TradeState, TradeLifecycle
 from .execution_guardrails_manager import ExecutionGuardrailsManagerV2
 from .range_engine import RangeAnalyzer, ZoneClassifier
 from .backtest_engine import BacktestEngine, BacktestMetrics
+from .persistence import PersistenceManager
+from .broker_wrapper import BrokerWrapper
 
 __all__ = [
     'PortfolioManager',
@@ -28,4 +30,6 @@ __all__ = [
     'ZoneClassifier',
     'BacktestEngine',
     'BacktestMetrics',
+    'PersistenceManager',
+    'BrokerWrapper',
 ]

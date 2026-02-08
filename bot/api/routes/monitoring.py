@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, Query
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 import pandas as pd
+import threading
 
 from ...core import (
     TradeStateManager,
@@ -36,6 +37,8 @@ _execution_guardrails: Optional[ExecutionGuardrailsManagerV2] = None
 _range_analyzer: Optional[RangeAnalyzer] = None
 _broker = None
 _data_manager = None
+_bot_instance = None
+_bot_thread = None
 
 
 def set_monitoring_components(
@@ -54,6 +57,13 @@ def set_monitoring_components(
     _range_analyzer = range_analyzer
     _broker = broker
     _data_manager = data_manager
+
+
+def set_bot_instance(bot, bot_thread=None):
+    global _bot_instance, _bot_thread
+    _bot_instance = bot
+    if bot_thread is not None:
+        _bot_thread = bot_thread
 
 
 @router.get("/trade-stats")
@@ -118,7 +128,7 @@ async def get_risk_exposure() -> Dict[str, Any]:
         return {
             "total_exposure": exposure.get("total_exposure", 0),
             "exposure_pct": exposure.get("exposure_pct", 0),
-            "num_open_positions": exposure.get("num_open_positions", 0),
+            "num_open_positions": exposure.get("num_positions", 0),
             "consecutive_losses": risk_stats.get("consecutive_losses", 0),
             "max_consecutive_losses": risk_stats.get("max_consecutive_losses", 5),
             "daily_loss": risk_stats.get("daily_loss", 0),
@@ -126,6 +136,7 @@ async def get_risk_exposure() -> Dict[str, Any]:
             "trading_halted": risk_stats.get("trading_halted", False),
             "halt_reason": risk_stats.get("halt_reason", ""),
             "open_positions": exposure.get("open_positions", []),
+            "current_balance": risk_stats.get("current_balance", 0),
             "timestamp": datetime.utcnow().isoformat(),
         }
     except Exception as e:
@@ -183,9 +194,9 @@ async def get_range_analysis(symbol: str) -> Dict[str, Any]:
         
         return {
             "symbol": symbol,
-            "range_high": analysis.get("session_high", 0),
-            "range_low": analysis.get("session_low", 0),
-            "range_pct": analysis.get("range_pct", 0),
+            "range_high": analysis.get("range_high", 0),
+            "range_low": analysis.get("range_low", 0),
+            "range_size": analysis.get("range_size", 0),
             "range_position": analysis.get("range_position", 0),
             "volatility_pct": analysis.get("volatility_pct", 0),
             "zone": analysis.get("zone", "UNKNOWN"),
@@ -193,9 +204,9 @@ async def get_range_analysis(symbol: str) -> Dict[str, Any]:
             "trade_reason": reason,
             "should_exit": should_exit,
             "exit_reason": exit_reason,
-            "chop_detected": analysis.get("chop_detected", False),
-            "exhaustion_detected": analysis.get("exhaustion_detected", False),
-            "range_expanding": analysis.get("range_expanding", False),
+            "chop_detected": analysis.get("is_chop", False),
+            "exhaustion_detected": analysis.get("is_exhaustion", False),
+            "range_expanding": analysis.get("expansion_level", 1.0) > 1.0,
             "current_price": current_price,
             "timestamp": datetime.utcnow().isoformat(),
         }
@@ -225,11 +236,45 @@ async def get_active_trades() -> Dict[str, Any]:
     
     try:
         active_trades = []
-        stats = _trade_state_manager.get_stats()
-        
-        # Get trade history and filter for open trades
-        # This would need to be extended based on actual TradeStateManager implementation
-        
+        open_trades = _trade_state_manager.get_open_trades()
+
+        broker_instance = None
+        if isinstance(_broker, dict) and _broker:
+            broker_instance = _broker[list(_broker.keys())[0]]
+        elif _broker:
+            broker_instance = _broker
+
+        now = datetime.utcnow()
+        update_interval = getattr(_bot_instance, "update_interval", 60) if _bot_instance else 60
+
+        for trade in open_trades:
+            current_price = trade.entry_price
+            if broker_instance:
+                try:
+                    ticker = broker_instance.get_ticker(trade.symbol)
+                    current_price = ticker.get("last", current_price)
+                except Exception:
+                    current_price = trade.entry_price
+
+            candles_held = 0
+            if trade.entry_time and update_interval > 0:
+                candles_held = int((now - trade.entry_time).total_seconds() / update_interval)
+
+            pnl = (current_price - trade.entry_price) * trade.position_size
+            if trade.direction == "SELL":
+                pnl = (trade.entry_price - current_price) * trade.position_size
+
+            active_trades.append({
+                "symbol": trade.symbol,
+                "direction": trade.direction,
+                "entry_price": trade.entry_price,
+                "current_price": current_price,
+                "position_size": trade.position_size,
+                "unrealized_pnl": pnl,
+                "state": trade.state.value,
+                "candles_held": candles_held,
+            })
+
         return {
             "active_trades": active_trades,
             "total_active": len(active_trades),
@@ -261,12 +306,12 @@ async def get_execution_stats() -> Dict[str, Any]:
         stats = _execution_guardrails.get_execution_stats()
         
         return {
-            "total_orders": stats.get("total_orders", 0),
-            "accepted_orders": stats.get("accepted_orders", 0),
-            "rejected_orders": stats.get("rejected_orders", 0),
+            "total_orders": stats.get("total_executed", 0) + stats.get("total_rejected", 0),
+            "accepted_orders": stats.get("total_executed", 0),
+            "rejected_orders": stats.get("total_rejected", 0),
             "acceptance_rate": 100 - stats.get("rejection_rate", 0),
             "rejection_rate": stats.get("rejection_rate", 0),
-            "avg_fill_time": stats.get("avg_fill_time", 0),
+            "avg_fill_time": 0,
             "rejection_reasons": stats.get("rejection_reasons", {}),
             "by_symbol": stats.get("by_symbol", {}),
             "timestamp": datetime.utcnow().isoformat(),
@@ -450,12 +495,85 @@ async def get_health() -> Dict[str, Any]:
         - last_cycle: Timestamp of last trading cycle
     """
     return {
-        "bot_running": True,
+        "bot_running": bool(_bot_instance and _bot_instance.running),
         "components_initialized": {
             "trade_state_manager": _trade_state_manager is not None,
             "risk_engine_v2": _risk_engine_v2 is not None,
             "execution_guardrails": _execution_guardrails is not None,
             "range_analyzer": _range_analyzer is not None,
         },
+        "brokers": list(_broker.keys()) if isinstance(_broker, dict) else [],
+        "strategies": list(_bot_instance.strategies.keys()) if _bot_instance else [],
+        "paused": bool(_bot_instance.paused) if _bot_instance else False,
+        "mode": _bot_instance.mode if _bot_instance else "unknown",
+        "live_locked": bool(_bot_instance.live_lock and not _bot_instance.live_unlocked) if _bot_instance else True,
+        "live_unlocked": bool(_bot_instance.live_unlocked) if _bot_instance else False,
+        "last_cycle": _bot_instance.last_cycle_at if _bot_instance else None,
+        "last_error": _bot_instance.last_error if _bot_instance else None,
         "timestamp": datetime.utcnow().isoformat(),
     }
+
+
+@router.post("/control/pause")
+async def pause_bot() -> Dict[str, Any]:
+    if not _bot_instance:
+        return {"error": "Bot not initialized"}
+    _bot_instance.pause()
+    return {"status": "paused"}
+
+
+@router.post("/control/resume")
+async def resume_bot() -> Dict[str, Any]:
+    if not _bot_instance:
+        return {"error": "Bot not initialized"}
+    _bot_instance.resume()
+    return {"status": "running"}
+
+
+@router.post("/control/stop")
+async def stop_bot() -> Dict[str, Any]:
+    if not _bot_instance:
+        return {"error": "Bot not initialized"}
+    _bot_instance.stop()
+    return {"status": "stopped"}
+
+
+@router.post("/control/lock-live")
+async def lock_live() -> Dict[str, Any]:
+    if not _bot_instance:
+        return {"error": "Bot not initialized"}
+    _bot_instance.lock_live_trading()
+    return {"status": "live_locked"}
+
+
+@router.post("/control/unlock-live")
+async def unlock_live(payload: Dict[str, Any]) -> Dict[str, Any]:
+    if not _bot_instance:
+        return {"error": "Bot not initialized"}
+    confirm = str(payload.get("confirm", ""))
+    reason = str(payload.get("reason", ""))
+    ok = _bot_instance.unlock_live_trading(confirm, reason=reason)
+    if not ok:
+        return {"error": "Invalid confirmation phrase"}
+    return {"status": "live_unlocked"}
+
+
+@router.post("/control/start")
+async def start_bot() -> Dict[str, Any]:
+    global _bot_instance, _bot_thread
+    if _bot_instance and _bot_instance.running:
+        return {"status": "already_running"}
+
+    from ...main import TradingBot
+
+    _bot_instance = TradingBot()
+    if not _bot_instance.initialize():
+        return {"error": "Initialization failed"}
+
+    _bot_thread = threading.Thread(
+        target=_bot_instance.start,
+        kwargs={"test_connection_only": False},
+        daemon=True,
+    )
+    _bot_thread.start()
+    return {"status": "started"}

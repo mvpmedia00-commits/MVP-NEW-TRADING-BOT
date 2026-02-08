@@ -136,7 +136,7 @@ class PortfolioManager:
     def add_position(
         self,
         symbol: str,
-        side: str,
+        side: str,  # 'BUY' or 'SELL'
         entry_price: float,
         quantity: float,
         broker: str,
@@ -168,7 +168,9 @@ class PortfolioManager:
                     # Could implement position averaging here
                     return False
                 
-                position = Position(symbol, side, entry_price, quantity, broker)
+                # Convert BUY/SELL to long/short
+                position_side = 'long' if side.upper() in ['BUY', 'LONG'] else 'short'
+                position = Position(symbol, position_side, entry_price, quantity, broker)
                 position.stop_loss = Decimal(str(stop_loss)) if stop_loss else None
                 position.take_profit = Decimal(str(take_profit)) if take_profit else None
                 position.order_id = order_id

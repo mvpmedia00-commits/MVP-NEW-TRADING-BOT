@@ -26,13 +26,33 @@ logger = get_logger(__name__)
 # ========== GUARDRAIL 1: SYMBOL WHITELIST ========== #
 
 ALLOWED_SYMBOLS = {
-    "BTC_USD",
-    "ETH_USD",
-    "XRP_USD",
-    "DOGE_USD",
-    "SHIB_USD",
-    "TRUMP_USD",
+    "BTC/USD",
+    "ETH/USD",
+    "XRP/USD",
+    "DOGE/USD",
+    "SHIB/USD",
+    "TRUMP/USD",
+    "LTC/USD",
+    "BCH/USD",
+    "LINK/USD",
+    "BTC/USDT",
+    "ETH/USDT",
+    "XRP/USDT",
+    "DOGE/USDT",
+    "SHIB/USDT",
+    "TRUMP/USDT",
+    "LTC/USDT",
+    "BCH/USDT",
+    "LINK/USDT",
 }
+
+
+def _normalize_symbol(symbol: str) -> str:
+    return symbol.replace("_", "/").replace("-", "/")
+
+
+def _asset_from_symbol(symbol: str) -> str:
+    return _normalize_symbol(symbol).split("/")[0]
 
 
 def symbol_allowed(symbol: str) -> bool:
@@ -44,7 +64,7 @@ def symbol_allowed(symbol: str) -> bool:
     - API glitches routing to unexpected pairs
     - Accidental high-risk pair entry
     """
-    return symbol in ALLOWED_SYMBOLS
+    return _normalize_symbol(symbol) in ALLOWED_SYMBOLS
 
 
 # ========== GUARDRAIL 2: MAX SPREAD FILTER ========== #
@@ -76,7 +96,7 @@ def spread_ok(symbol: str, bid: float, ask: float) -> bool:
         return False
 
     spread = (ask - bid) / ask
-    asset = symbol.split("_")[0]
+    asset = _asset_from_symbol(symbol)
     max_allowed = MAX_SPREAD.get(asset, 0.001)
 
     ok = spread <= max_allowed
@@ -137,7 +157,7 @@ def order_size_ok(symbol: str, qty: float, price: float) -> bool:
     if qty <= 0 or price <= 0:
         return False
 
-    asset = symbol.split("_")[0]
+    asset = _asset_from_symbol(symbol)
     notional = qty * price
     min_notional = MIN_NOTIONAL.get(asset, 10)
 
@@ -150,7 +170,7 @@ def order_size_ok(symbol: str, qty: float, price: float) -> bool:
 
 # ========== GUARDRAIL 5: PARTIAL FILL TIMEOUT ========== #
 
-def wait_for_fill(client, order_id: str, timeout: int = 5) -> bool:
+def wait_for_fill(client, order_id: str, symbol: str, timeout: int = 5) -> bool:
     """
     Guardrail 5: Cancel if not filled within timeout
     
@@ -178,7 +198,7 @@ def wait_for_fill(client, order_id: str, timeout: int = 5) -> bool:
 
     while time.time() - start < timeout:
         try:
-            order = client.get_order(order_id)
+            order = client.get_order(order_id, symbol)
             status = order.get("status", "").upper()
 
             if status == "FILLED":
@@ -197,7 +217,7 @@ def wait_for_fill(client, order_id: str, timeout: int = 5) -> bool:
 
     # Timeout expired → cancel
     try:
-        client.cancel_order(order_id)
+        client.cancel_order(order_id, symbol)
         logger.warning(f"Order {order_id} TIMEOUT (5s) → CANCELLED")
     except Exception as e:
         logger.error(f"Error cancelling order {order_id}: {e}")
@@ -247,7 +267,7 @@ def prevent_duplicate(symbol: str, cooldown: int = 10) -> bool:
 MEME_COINS = {"DOGE", "SHIB", "TRUMP"}
 
 
-def meme_restrictions(symbol: str, side: str) -> bool:
+def meme_restrictions(symbol: str, side: str, allow_sell: bool = True) -> bool:
     """
     Guardrail 7: Enforce meme coin restrictions
     
@@ -269,13 +289,11 @@ def meme_restrictions(symbol: str, side: str) -> bool:
     - True if order allowed
     - False if violates meme restrictions
     """
-    asset = symbol.split("_")[0]
+    asset = _asset_from_symbol(symbol)
 
-    if asset in MEME_COINS:
-        allowed = side.upper() == "BUY"
-        if not allowed:
-            logger.warning(f"{symbol} MEME COIN HARD MODE: NO SELL orders allowed")
-        return allowed
+    if asset in MEME_COINS and side.upper() == "SELL" and not allow_sell:
+        logger.warning(f"{symbol} MEME COIN HARD MODE: NO SELL orders allowed")
+        return False
 
     return True
 
@@ -365,9 +383,10 @@ def execute_trade(
 
     # -------- EXECUTION: Place Limit Order -------- #
     try:
-        order = client.place_limit_order(
-            symbol=symbol,
-            side=side.upper(),
+        order = client.create_order(
+            symbol=_normalize_symbol(symbol),
+            order_type="limit",
+            side=side.lower(),
             amount=qty,
             price=price,
         )
@@ -379,7 +398,7 @@ def execute_trade(
         return False, msg
 
     # -------- GUARD 6: Wait for Fill (with timeout) -------- #
-    filled = wait_for_fill(client, order_id, timeout=5)
+    filled = wait_for_fill(client, order_id, _normalize_symbol(symbol), timeout=5)
 
     if filled:
         msg = f"FILLED | {side.upper()} {qty} {symbol}"

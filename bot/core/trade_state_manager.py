@@ -176,7 +176,8 @@ class TradeStateManager:
         entry_price: float,
         position_size: float,
         range_position: float = 0.0,
-        volatility: float = 0.0
+        volatility: float = 0.0,
+        entry_candle_index: int = 0,
     ) -> TradeLifecycle:
         """Open a new trade"""
         with self._lock:
@@ -193,6 +194,8 @@ class TradeStateManager:
                 range_position=range_position,
                 volatility=volatility
             )
+            trade.entry_candle_index = entry_candle_index
+            trade.advance_state(TradeState.OPEN, "Order filled")
             
             self._trades[symbol] = trade
             self._trade_history.setdefault(symbol, [])
@@ -291,6 +294,11 @@ class TradeStateManager:
                 for trades in self._trade_history.values():
                     all_trades.extend(trades)
                 return sorted(all_trades, key=lambda t: t.entry_time)
+
+    def get_open_trades(self) -> list:
+        """Get currently open trades"""
+        with self._lock:
+            return [t for t in self._trades.values() if t]
     
     def get_stats(self) -> Dict[str, Any]:
         """Get trade statistics"""

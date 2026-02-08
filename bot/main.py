@@ -14,12 +14,10 @@ import pandas as pd
 from .utils import get_logger, ConfigLoader
 from .brokers import get_broker_class
 from .strategies import get_strategy_class
-from .indicators import LGMIndicatorEngine
 from .core import (
     PortfolioManager, RiskEngineV2, OrderManager, DataManager,
-    TradeStateManager,
-    ExecutionGuardrailsManagerV2,
-    RangeAnalyzer,
+    TradeStateManager, ExecutionGuardrailsManagerV2, RangeAnalyzer,
+    PersistenceManager, BrokerWrapper,
 )
 
 logger = get_logger(__name__)
@@ -44,6 +42,7 @@ class TradingBot:
         # Initialize components
         self.brokers = {}
         self.strategies = {}
+        self.persistence = PersistenceManager()
         self.portfolio = PortfolioManager(mode=self.mode)
         self.order_manager = OrderManager(mode=self.mode)
         self.data_manager = DataManager()
@@ -65,13 +64,14 @@ class TradingBot:
             self.global_config.get('range_engine', {})
         )
         
-        # LGM Indicator Engine
-        self.lgm_indicators = LGMIndicatorEngine(
-            self.global_config.get('lgm_indicators', {})
-        )
-        
         # Runtime state
         self.running = False
+        self.paused = False
+        self.live_lock = self.global_config.get("live_lock_enabled", True)
+        self.live_unlocked = False
+        self.live_unlock_reason = None
+        self.last_cycle_at = None
+        self.last_error = None
         self.update_interval = self.global_config.get('execution', {}).get('update_interval', 60)
         self._cycle_count = 0
         
@@ -102,8 +102,10 @@ class TradingBot:
                 
                 broker = broker_class(broker_config)
                 if broker.connect():
-                    self.brokers[broker_name] = broker
-                    self.data_manager.set_broker(broker_name, broker)
+                    # Wrap broker with retry logic
+                    wrapped_broker = BrokerWrapper(broker, max_retries=3, retry_delay=2)
+                    self.brokers[broker_name] = wrapped_broker
+                    self.data_manager.set_broker(broker_name, wrapped_broker)
                     logger.info(f"Successfully initialized broker: {broker_name}")
                 else:
                     logger.error(f"Failed to connect to broker: {broker_name}")
@@ -135,13 +137,21 @@ class TradingBot:
                     logger.warning(f"Strategy class not found for {strategy_name}")
                     continue
                 
-                strategy = strategy_class(strategy_cfg)
+                if strategy_class.__name__ == "LGMStrategy":
+                    enriched_cfg = dict(strategy_cfg)
+                    enriched_cfg["indicator_settings"] = self.global_config.get("lgm_indicators", {})
+                    strategy = strategy_class(enriched_cfg)
+                else:
+                    strategy = strategy_class(strategy_cfg)
                 self.strategies[strategy_name] = strategy
                 logger.info(f"Initialized strategy: {strategy_name}")
             
             if not self.strategies:
                 logger.warning("No strategies initialized!")
                 return False
+            
+            # Reconcile positions from database
+            self._reconcile_positions()
             
             logger.info("Bot initialization complete")
             return True
@@ -192,6 +202,11 @@ class TradingBot:
         try:
             logger.debug("Running trading cycle")
             self._cycle_count += 1
+            self.last_cycle_at = datetime.utcnow().isoformat()
+            
+            if self.paused:
+                logger.info("Trading paused - skipping cycle")
+                return
             
             # Update portfolio with current broker balances
             for broker_name, broker in self.brokers.items():
@@ -217,6 +232,7 @@ class TradingBot:
                 self._log_monitoring_stats()
             
         except Exception as e:
+            self.last_error = str(e)
             logger.error(f"Error in trading cycle: {e}", exc_info=True)
     
     def _execute_strategy(self, strategy_name: str, strategy: Any):
@@ -224,6 +240,10 @@ class TradingBot:
         Execute a single strategy with full validation, risk checks, and guardrails
         """
         try:
+            if self.mode == "live" and self.live_lock and not self.live_unlocked:
+                logger.warning("Live trading locked - skipping execution cycle")
+                return
+
             symbol = strategy.parameters.get('symbol', 'BTC/USDT')
             broker_name = next(iter(self.brokers.keys()))
             broker = self.brokers[broker_name]
@@ -245,9 +265,6 @@ class TradingBot:
                 return
             
             df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-            
-            # ========== STEP 1.5: ENRICH WITH LGM INDICATORS ==========
-            df = self.lgm_indicators.enrich(df)
             
             # ========== STEP 2: ANALYZE RANGE ==========
             analysis = self.range_analyzer.analyze(symbol, df)
@@ -311,7 +328,8 @@ class TradingBot:
                         entry_price=current_price,
                         position_size=qty,
                         range_position=analysis['range_position'],
-                        volatility=analysis['volatility_pct']
+                        volatility=analysis['volatility_pct'],
+                        entry_candle_index=len(df) - 1,
                     )
                     
                     # Record in risk engine
@@ -323,7 +341,16 @@ class TradingBot:
                     )
                     
                     # Record in portfolio
-                    self.portfolio.add_position(symbol, signal, qty, current_price)
+                    self.portfolio.add_position(
+                        symbol=symbol,
+                        side=signal,
+                        entry_price=current_price,
+                        quantity=qty,
+                        broker=broker_name,
+                    )
+                    
+                    # Persist to database
+                    self.persistence.save_position(symbol, signal, current_price, qty, broker_name)
                     
                     logger.info(
                         f"✅ TRADE OPENED | {symbol} {signal} {qty:.4f} @ ${current_price:.2f} | "
@@ -386,6 +413,9 @@ class TradingBot:
                         # Close in portfolio
                         self.portfolio.close_position(symbol, exit_price)
                         
+                        # Persist to database
+                        self.persistence.close_position(symbol, exit_price, closed_trade.pnl)
+                        
                         logger.info(
                             f"✅ TRADE CLOSED | {symbol} {closed_trade.direction} | "
                             f"PnL: ${closed_trade.pnl:.2f} ({closed_trade.pnl_pct:.2f}%) | "
@@ -423,12 +453,62 @@ class TradingBot:
         except Exception as e:
             logger.error(f"Error logging stats: {e}")
     
+    def _reconcile_positions(self):
+        """Reconcile positions from database on startup"""
+        try:
+            saved_positions = self.persistence.get_open_positions()
+            if not saved_positions:
+                logger.info("No saved positions to reconcile")
+                return
+            
+            logger.info(f"Reconciling {len(saved_positions)} saved positions")
+            
+            for pos in saved_positions:
+                symbol = pos['symbol']
+                broker_name = pos['broker']
+                
+                # Verify position still exists on broker
+                if broker_name in self.brokers:
+                    broker = self.brokers[broker_name]
+                    try:
+                        ticker = broker.get_ticker(symbol)
+                        current_price = ticker.get('last', ticker.get('close', 0))
+                        
+                        # Restore to portfolio
+                        self.portfolio.add_position(
+                            symbol=symbol,
+                            side=pos['side'],
+                            entry_price=pos['entry_price'],
+                            quantity=pos['quantity'],
+                            broker=broker_name
+                        )
+                        
+                        # Restore to risk engine
+                        self.risk_engine.open_position(
+                            symbol=symbol,
+                            direction=pos['side'],
+                            qty=pos['quantity'],
+                            entry_price=pos['entry_price']
+                        )
+                        
+                        logger.info(f"Reconciled position: {symbol} {pos['side']} @ {pos['entry_price']}")
+                    except Exception as e:
+                        logger.error(f"Failed to reconcile {symbol}: {e}")
+                else:
+                    logger.warning(f"Broker {broker_name} not available for {symbol}")
+        except Exception as e:
+            logger.error(f"Error reconciling positions: {e}", exc_info=True)
+    
 
     
     def stop(self):
         """Stop the trading bot"""
         logger.info("Stopping trading bot...")
         self.running = False
+        
+        # Close all open positions if configured
+        if self.global_config.get('close_positions_on_shutdown', False):
+            self._close_all_positions()
         
         # Disconnect brokers
         for broker_name, broker in self.brokers.items():
@@ -446,6 +526,74 @@ class TradingBot:
             logger.error(f"Error saving portfolio state: {e}")
         
         logger.info("Trading bot stopped")
+
+    def unlock_live_trading(self, confirmation: str, reason: str = "") -> bool:
+        """Unlock live trading after explicit confirmation"""
+        required = "I UNDERSTAND LIVE TRADING"
+        if confirmation.strip() != required:
+            logger.warning("Live unlock failed: confirmation mismatch")
+            return False
+        self.live_unlocked = True
+        self.live_unlock_reason = reason or "manual"
+        logger.warning("Live trading UNLOCKED")
+        return True
+
+    def lock_live_trading(self):
+        """Lock live trading immediately"""
+        self.live_unlocked = False
+        self.live_unlock_reason = None
+        logger.warning("Live trading LOCKED")
+        return True
+
+    def pause(self):
+        """Pause trading cycles"""
+        self.paused = True
+        logger.warning("Trading bot paused")
+
+    def resume(self):
+        """Resume trading cycles"""
+        self.paused = False
+        logger.info("Trading bot resumed")
+    
+    def _close_all_positions(self):
+        """Close all open positions on shutdown"""
+        try:
+            positions = self.portfolio.get_all_positions()
+            if not positions:
+                return
+            
+            logger.warning(f"Closing {len(positions)} open positions...")
+            
+            for symbol, position in positions.items():
+                try:
+                    broker_name = position.broker
+                    if broker_name not in self.brokers:
+                        continue
+                    
+                    broker = self.brokers[broker_name]
+                    ticker = broker.get_ticker(symbol)
+                    current_price = ticker.get('last', ticker.get('close', 0))
+                    
+                    # Determine close side
+                    close_side = 'SELL' if position.side == 'long' else 'BUY'
+                    
+                    # Execute close order
+                    broker.create_order(
+                        symbol=symbol,
+                        order_type='market',
+                        side=close_side,
+                        amount=float(position.quantity)
+                    )
+                    
+                    # Update tracking
+                    pnl = self.portfolio.close_position(symbol, current_price)
+                    self.persistence.close_position(symbol, current_price, float(pnl or 0))
+                    
+                    logger.info(f"Closed position: {symbol} @ {current_price}")
+                except Exception as e:
+                    logger.error(f"Failed to close {symbol}: {e}")
+        except Exception as e:
+            logger.error(f"Error closing positions: {e}", exc_info=True)
     
     def _signal_handler(self, signum, frame):
         """Handle termination signals"""

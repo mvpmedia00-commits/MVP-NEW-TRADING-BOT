@@ -295,10 +295,10 @@
         <div class="status-bar">
             <div class="status-item">
                 <span class="status-indicator"></span>
-                <span id="bot-status">Bot Status: Running</span>
+                <span id="bot-status">Bot Status: --</span>
             </div>
             <div class="status-item">
-                <span>Connected Brokers: <strong>Crypto.com</strong></span>
+                <span>Connected Brokers: <strong><span id="connected-brokers">--</span></strong></span>
             </div>
             <div class="status-item">
                 <span>Active Strategies: <strong><span id="active-strategies">Loading...</span></strong></span>
@@ -310,6 +310,22 @@
 
         <!-- Dashboard Grid -->
         <div class="dashboard-grid">
+            <!-- Controls Panel -->
+            <div class="panel">
+                <div class="panel-title">🎛️ Controls</div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="btn-start" style="padding: 8px 12px;">Start</button>
+                    <button id="btn-pause" style="padding: 8px 12px;">Pause</button>
+                    <button id="btn-resume" style="padding: 8px 12px;">Resume</button>
+                    <button id="btn-stop" style="padding: 8px 12px;">Stop</button>
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                    <button id="btn-lock-live" style="padding: 8px 12px;">Lock Live</button>
+                    <button id="btn-unlock-live" style="padding: 8px 12px;">Unlock Live</button>
+                </div>
+                <div class="refresh-time">Status: <span id="control-status">--</span></div>
+            </div>
+
             <!-- Trade Statistics Panel -->
             <div class="panel">
                 <div class="panel-title">📈 Trade Statistics</div>
@@ -469,7 +485,7 @@
         // Configuration
         const API_BASE = '/api/monitoring';
         const REFRESH_INTERVAL = 10000; // 10 seconds
-        const SYMBOLS = ['BTC/USDT', 'ETH/USDT', 'XRP/USDT', 'DOGE/USDT', 'SHIB/USDT', 'TRUMP/USDT'];
+        let SYMBOLS = ['BTC/USDT', 'ETH/USDT', 'XRP/USDT', 'DOGE/USDT', 'SHIB/USDT', 'TRUMP/USDT'];
 
         // Update functions
         async function updateTradeStats() {
@@ -514,7 +530,7 @@
                     return;
                 }
 
-                document.getElementById('account-balance').textContent = '$' + (data.total_exposure || 0).toFixed(2);
+                document.getElementById('account-balance').textContent = '$' + (data.current_balance || 0).toFixed(2);
                 document.getElementById('total-exposure').textContent = '$' + (data.total_exposure || 0).toFixed(2);
                 
                 const exposurePct = data.exposure_pct || 0;
@@ -641,6 +657,94 @@
             }
         }
 
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+
+                const running = data.bot_running;
+                const paused = data.paused;
+                const statusText = running ? (paused ? 'Paused' : 'Running') : 'Stopped';
+                document.getElementById('bot-status').textContent = 'Bot Status: ' + statusText;
+                document.getElementById('connected-brokers').textContent = (data.brokers || []).join(', ') || '--';
+                document.getElementById('active-strategies').textContent = (data.strategies || []).join(', ') || '--';
+
+                const liveLocked = data.live_locked;
+                const liveText = liveLocked ? 'LIVE LOCKED' : 'LIVE UNLOCKED';
+                document.getElementById('control-status').textContent = liveText;
+            } catch (error) {
+                console.error('Error fetching status:', error);
+            }
+        }
+
+        async function updateActiveTrades() {
+            try {
+                const response = await fetch(`${API_BASE}/active-trades`);
+                const data = await response.json();
+
+                const tbody = document.getElementById('active-trades-list');
+                if (data.error || !data.active_trades || data.active_trades.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">No active trades</td></tr>';
+                    updateTime('trades-time');
+                    return;
+                }
+
+                const rows = data.active_trades.map(t => {
+                    const pnlClass = (t.unrealized_pnl || 0) >= 0 ? 'pnl-positive' : 'pnl-negative';
+                    return `
+                        <tr>
+                            <td>${t.symbol}</td>
+                            <td>${t.direction}</td>
+                            <td>${(t.entry_price || 0).toFixed(2)}</td>
+                            <td>${(t.current_price || 0).toFixed(2)}</td>
+                            <td>${(t.position_size || 0).toFixed(4)}</td>
+                            <td class="${pnlClass}">${(t.unrealized_pnl || 0).toFixed(2)}</td>
+                            <td>${t.candles_held || 0}</td>
+                            <td><span class="state-badge ${t.state}">${t.state}</span></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                tbody.innerHTML = rows;
+                updateTime('trades-time');
+            } catch (error) {
+                console.error('Error fetching active trades:', error);
+            }
+        }
+
+        async function setupControls() {
+            const statusEl = document.getElementById('control-status');
+            const post = async (path) => {
+                const res = await fetch(`${API_BASE}/control/${path}`, { method: 'POST' });
+                const data = await res.json();
+                statusEl.textContent = data.status || data.error || 'error';
+                updateStatus();
+            };
+
+            document.getElementById('btn-start').addEventListener('click', () => post('start'));
+            document.getElementById('btn-pause').addEventListener('click', () => post('pause'));
+            document.getElementById('btn-resume').addEventListener('click', () => post('resume'));
+            document.getElementById('btn-stop').addEventListener('click', () => post('stop'));
+
+            document.getElementById('btn-lock-live').addEventListener('click', () => post('lock-live'));
+            document.getElementById('btn-unlock-live').addEventListener('click', async () => {
+                const phrase = 'I UNDERSTAND LIVE TRADING';
+                const confirmText = prompt(`Type exactly: ${phrase}`);
+                if (confirmText !== phrase) {
+                    statusEl.textContent = 'unlock_cancelled';
+                    return;
+                }
+                const res = await fetch(`${API_BASE}/control/unlock-live`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirm: confirmText, reason: 'dashboard' })
+                });
+                const data = await res.json();
+                statusEl.textContent = data.status || data.error || 'error';
+                updateStatus();
+            });
+        }
+
         function updateTime(elementId) {
             const now = new Date();
             document.getElementById(elementId).textContent = now.toLocaleTimeString();
@@ -650,18 +754,23 @@
         // Periodic updates
         function startAutoRefresh() {
             // Initial update
+            updateStatus();
             updateTradeStats();
             updateRiskExposure();
             updateExecutionStats();
             updateRangeAnalysis();
+            updateActiveTrades();
             updateAlerts();
+            setupControls();
             
             // Refresh every 10 seconds
             setInterval(() => {
+                updateStatus();
                 updateTradeStats();
                 updateRiskExposure();
                 updateExecutionStats();
                 updateRangeAnalysis();
+                updateActiveTrades();
                 updateAlerts();
             }, REFRESH_INTERVAL);
         }

@@ -277,17 +277,31 @@ class RiskEngineV2:
         with self._lock:
             total_exposure = Decimal('0')
             exposure_by_asset: Dict[str, Decimal] = {}
+            open_positions = []
             
             for symbol, pos in self._open_positions.items():
                 asset = self._get_asset_name(symbol)
                 value = Decimal(str(pos['value']))
                 total_exposure += value
                 exposure_by_asset[asset] = exposure_by_asset.get(asset, Decimal('0')) + value
+                open_positions.append({
+                    "symbol": symbol,
+                    "direction": pos.get("direction"),
+                    "qty": pos.get("qty"),
+                    "entry_price": pos.get("entry_price"),
+                    "value": float(value),
+                })
+            
+            exposure_pct = 0.0
+            if self.account_balance > 0:
+                exposure_pct = float(total_exposure / self.account_balance * Decimal('100'))
             
             return {
                 "total_exposure": float(total_exposure),
+                "exposure_pct": exposure_pct,
                 "exposure_by_asset": {k: float(v) for k, v in exposure_by_asset.items()},
                 "num_positions": len(self._open_positions),
+                "open_positions": open_positions,
                 "max_allowed": float(self.account_balance * self.portfolio_max_risk / Decimal('100')),
             }
     

@@ -154,8 +154,12 @@ class ConfigLoader:
         
         # Override testnet setting
         testnet_var = f"{prefix}_TESTNET"
-        if os.getenv(testnet_var) and "settings" in config:
-            config["settings"]["testnet"] = os.getenv(testnet_var).lower() == 'true'
+        sandbox_var = f"{prefix}_SANDBOX"
+        env_testnet = os.getenv(testnet_var)
+        env_sandbox = os.getenv(sandbox_var)
+        if (env_testnet or env_sandbox) and "settings" in config:
+            value = env_testnet if env_testnet is not None else env_sandbox
+            config["settings"]["testnet"] = value.lower() == 'true'
         
         return config
     

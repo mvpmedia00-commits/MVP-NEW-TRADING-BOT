@@ -30,9 +30,8 @@ class BaseStrategy(ABC):
         self.risk_settings = config.get('risk_settings', {})
         self.enabled = config.get('enabled', True)
         
-        # Position tracking
-        self.position = None
-        self.entry_price = None
+        # Note: Position tracking moved to Portfolio/RiskEngine
+        # Strategies are now stateless - they only generate signals
         
         logger.info(f"Initialized strategy: {self.name}")
     
@@ -62,121 +61,102 @@ class BaseStrategy(ABC):
         """
         pass
     
-    def should_enter(self, data: pd.DataFrame) -> bool:
+    def should_enter(self, data: pd.DataFrame, has_position: bool) -> bool:
         """
         Check if should enter a position
         
         Args:
             data: DataFrame with OHLCV and indicators
+            has_position: Whether position already exists
             
         Returns:
             True if should enter, False otherwise
         """
-        if self.position is not None:
+        if has_position:
             return False
         
         signal = self.generate_signal(data)
         return signal in ['BUY', 'SELL']
     
-    def should_exit(self, data: pd.DataFrame, current_price: float) -> bool:
+    def should_exit(self, data: pd.DataFrame, current_price: float, position_side: str, entry_price: float) -> bool:
         """
         Check if should exit current position
         
         Args:
             data: DataFrame with OHLCV and indicators
             current_price: Current market price
+            position_side: 'long' or 'short'
+            entry_price: Position entry price
             
         Returns:
             True if should exit, False otherwise
         """
-        if self.position is None:
-            return False
-        
         # Check stop loss
-        if self.check_stop_loss(current_price):
+        if self.check_stop_loss(current_price, position_side, entry_price):
             logger.info(f"Stop loss triggered at {current_price}")
             return True
         
         # Check take profit
-        if self.check_take_profit(current_price):
+        if self.check_take_profit(current_price, position_side, entry_price):
             logger.info(f"Take profit triggered at {current_price}")
             return True
         
         # Check strategy signal
         signal = self.generate_signal(data)
-        if self.position == 'LONG' and signal == 'SELL':
+        if position_side == 'long' and signal == 'SELL':
             return True
-        if self.position == 'SHORT' and signal == 'BUY':
+        if position_side == 'short' and signal == 'BUY':
             return True
         
         return False
     
-    def check_stop_loss(self, current_price: float) -> bool:
+    def check_stop_loss(self, current_price: float, position_side: str, entry_price: float) -> bool:
         """
         Check if stop loss is triggered
         
         Args:
             current_price: Current market price
+            position_side: 'long' or 'short'
+            entry_price: Position entry price
             
         Returns:
             True if stop loss triggered, False otherwise
         """
-        if self.position is None or self.entry_price is None:
-            return False
-        
         stop_loss_pct = self.risk_settings.get('stop_loss_pct', 2.0) / 100
         
-        if self.position == 'LONG':
-            stop_loss_price = self.entry_price * (1 - stop_loss_pct)
+        if position_side == 'long':
+            stop_loss_price = entry_price * (1 - stop_loss_pct)
             return current_price <= stop_loss_price
-        elif self.position == 'SHORT':
-            stop_loss_price = self.entry_price * (1 + stop_loss_pct)
+        elif position_side == 'short':
+            stop_loss_price = entry_price * (1 + stop_loss_pct)
             return current_price >= stop_loss_price
         
         return False
     
-    def check_take_profit(self, current_price: float) -> bool:
+    def check_take_profit(self, current_price: float, position_side: str, entry_price: float) -> bool:
         """
         Check if take profit is triggered
         
         Args:
             current_price: Current market price
+            position_side: 'long' or 'short'
+            entry_price: Position entry price
             
         Returns:
             True if take profit triggered, False otherwise
         """
-        if self.position is None or self.entry_price is None:
-            return False
-        
         take_profit_pct = self.risk_settings.get('take_profit_pct', 5.0) / 100
         
-        if self.position == 'LONG':
-            take_profit_price = self.entry_price * (1 + take_profit_pct)
+        if position_side == 'long':
+            take_profit_price = entry_price * (1 + take_profit_pct)
             return current_price >= take_profit_price
-        elif self.position == 'SHORT':
-            take_profit_price = self.entry_price * (1 - take_profit_pct)
+        elif position_side == 'short':
+            take_profit_price = entry_price * (1 - take_profit_pct)
             return current_price <= take_profit_price
         
         return False
     
-    def enter_position(self, position_type: str, entry_price: float):
-        """
-        Enter a position
-        
-        Args:
-            position_type: 'LONG' or 'SHORT'
-            entry_price: Entry price
-        """
-        self.position = position_type
-        self.entry_price = entry_price
-        logger.info(f"Entered {position_type} position at {entry_price}")
-    
-    def exit_position(self):
-        """Exit current position"""
-        if self.position:
-            logger.info(f"Exited {self.position} position")
-        self.position = None
-        self.entry_price = None
+    # Removed enter_position and exit_position - handled by Portfolio/RiskEngine
     
     def get_position_size(self) -> float:
         """
@@ -197,8 +177,6 @@ class BaseStrategy(ABC):
         return {
             'name': self.name,
             'enabled': self.enabled,
-            'position': self.position,
-            'entry_price': self.entry_price,
             'parameters': self.parameters,
             'risk_settings': self.risk_settings
         }
