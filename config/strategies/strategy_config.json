@@ -1,11 +1,11 @@
 {
   "active_strategies": [
-    "vg_crypto_btc",
-    "vg_crypto_eth",
-    "vg_crypto_xrp",
-    "vg_crypto_doge",
-    "vg_crypto_shib",
-    "vg_crypto_trump"
+    "lgm_btc",
+    "lgm_eth",
+    "lgm_xrp",
+    "lgm_doge",
+    "lgm_shib",
+    "lgm_trump"
   ],
   "strategies": {
     "sma_crossover": {
@@ -192,6 +192,126 @@
         "position_size": 100,
         "stop_loss_pct": 0.10,
         "take_profit_pct": 5.0
+      }
+    },
+    "lgm_btc": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "BTC/USDT",
+        "timezone": "US/Eastern",
+        "killzone_start": "02:00",
+        "killzone_end": "12:00",
+        "allowed_days": ["tuesday", "wednesday", "thursday"],
+        "max_trades_per_day": 3,
+        "max_trades_per_pair_per_day": 1,
+        "distance_from_line_pct": 0.35,
+        "adr_low_pct": 0.70,
+        "adr_high_pct": 0.85,
+        "checkpoints": [8, 16, 20],
+        "disable_after_losses": 2
+      },
+      "risk_settings": {
+        "position_size": 10.0
+      }
+    },
+    "lgm_eth": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "ETH/USDT",
+        "timezone": "US/Eastern",
+        "killzone_start": "02:00",
+        "killzone_end": "12:00",
+        "allowed_days": ["tuesday", "wednesday", "thursday"],
+        "max_trades_per_day": 3,
+        "max_trades_per_pair_per_day": 1,
+        "distance_from_line_pct": 0.35,
+        "adr_low_pct": 0.70,
+        "adr_high_pct": 0.85,
+        "checkpoints": [8, 16, 20],
+        "disable_after_losses": 2
+      },
+      "risk_settings": {
+        "position_size": 10.0
+      }
+    },
+    "lgm_xrp": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "XRP/USDT",
+        "timezone": "US/Eastern",
+        "killzone_start": "02:00",
+        "killzone_end": "12:00",
+        "allowed_days": ["tuesday", "wednesday", "thursday"],
+        "max_trades_per_day": 3,
+        "max_trades_per_pair_per_day": 1,
+        "distance_from_line_pct": 0.35,
+        "adr_low_pct": 0.70,
+        "adr_high_pct": 0.85,
+        "checkpoints": [8, 16, 20],
+        "disable_after_losses": 2
+      },
+      "risk_settings": {
+        "position_size": 10.0
+      }
+    },
+    "lgm_doge": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "DOGE/USDT",
+        "timezone": "US/Eastern",
+        "killzone_start": "02:00",
+        "killzone_end": "12:00",
+        "allowed_days": ["tuesday", "wednesday", "thursday"],
+        "max_trades_per_day": 3,
+        "max_trades_per_pair_per_day": 1,
+        "distance_from_line_pct": 0.35,
+        "adr_low_pct": 0.70,
+        "adr_high_pct": 0.85,
+        "checkpoints": [8, 16, 20],
+        "disable_after_losses": 2
+      },
+      "risk_settings": {
+        "position_size": 10.0
+      }
+    },
+    "lgm_shib": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "SHIB/USDT",
+        "timezone": "US/Eastern",
+        "killzone_start": "02:00",
+        "killzone_end": "12:00",
+        "allowed_days": ["tuesday", "wednesday", "thursday"],
+        "max_trades_per_day": 3,
+        "max_trades_per_pair_per_day": 1,
+        "distance_from_line_pct": 0.35,
+        "adr_low_pct": 0.70,
+        "adr_high_pct": 0.85,
+        "checkpoints": [8, 16, 20],
+        "disable_after_losses": 2
+      },
+      "risk_settings": {
+        "position_size": 10.0
+      }
+    },
+    "lgm_trump": {
+      "enabled": true,
+      "parameters": {
+        "symbol": "TRUMP/USDT",
+        "timezone": "US/Eastern",
+        "killzone_start": "02:00",
+        "killzone_end": "12:00",
+        "allowed_days": ["tuesday", "wednesday", "thursday"],
+        "max_trades_per_day": 3,
+        "max_trades_per_pair_per_day": 1,
+        "distance_from_line_pct": 0.35,
+        "adr_low_pct": 0.70,
+        "adr_high_pct": 0.85,
+        "checkpoints": [8, 16, 20],
+        "disable_after_losses": 2
+      },
+      "risk_settings": {
+        "position_size": 10.0
       }
     }
   },

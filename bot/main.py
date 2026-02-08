@@ -14,10 +14,10 @@ import pandas as pd
 from .utils import get_logger, ConfigLoader
 from .brokers import get_broker_class
 from .strategies import get_strategy_class
+from .indicators import LGMIndicatorEngine
 from .core import (
-    PortfolioManager, RiskManager, OrderManager, DataManager,
+    PortfolioManager, RiskEngineV2, OrderManager, DataManager,
     TradeStateManager,
-    RiskEngineV2,
     ExecutionGuardrailsManagerV2,
     RangeAnalyzer,
 )
@@ -45,7 +45,6 @@ class TradingBot:
         self.brokers = {}
         self.strategies = {}
         self.portfolio = PortfolioManager(mode=self.mode)
-        self.risk_manager = RiskManager(self.global_config.get('risk_management', {}))
         self.order_manager = OrderManager(mode=self.mode)
         self.data_manager = DataManager()
         
@@ -54,7 +53,7 @@ class TradingBot:
             self.strategy_config.get('trade_management', {})
         )
         
-        self.risk_engine_v2 = RiskEngineV2(
+        self.risk_engine = RiskEngineV2(
             self.global_config.get('risk_management', {})
         )
         
@@ -64,6 +63,11 @@ class TradingBot:
         
         self.range_analyzer = RangeAnalyzer(
             self.global_config.get('range_engine', {})
+        )
+        
+        # LGM Indicator Engine
+        self.lgm_indicators = LGMIndicatorEngine(
+            self.global_config.get('lgm_indicators', {})
         )
         
         # Runtime state
@@ -242,6 +246,9 @@ class TradingBot:
             
             df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
             
+            # ========== STEP 1.5: ENRICH WITH LGM INDICATORS ==========
+            df = self.lgm_indicators.enrich(df)
+            
             # ========== STEP 2: ANALYZE RANGE ==========
             analysis = self.range_analyzer.analyze(symbol, df)
             
@@ -274,7 +281,7 @@ class TradingBot:
                 # Convert to quantity
                 qty = position_size / current_price if current_price > 0 else 0
                 
-                can_open, risk_reason = self.risk_engine_v2.can_open_position(
+                can_open, risk_reason = self.risk_engine.can_open_position(
                     symbol=symbol,
                     direction=signal,
                     qty=qty,
@@ -308,7 +315,7 @@ class TradingBot:
                     )
                     
                     # Record in risk engine
-                    self.risk_engine_v2.open_position(
+                    self.risk_engine.open_position(
                         symbol=symbol,
                         direction=signal,
                         qty=qty,
@@ -370,7 +377,7 @@ class TradingBot:
                         )
                         
                         # Close in risk engine
-                        self.risk_engine_v2.close_position(
+                        self.risk_engine.close_position(
                             symbol=symbol,
                             exit_price=exit_price,
                             reason=exit_reason
@@ -397,8 +404,8 @@ class TradingBot:
         """Log current monitoring statistics"""
         try:
             # Risk stats
-            risk_stats = self.risk_engine_v2.get_stats()
-            exposure = self.risk_engine_v2.get_current_exposure()
+            risk_stats = self.risk_engine.get_stats()
+            exposure = self.risk_engine.get_current_exposure()
             
             # Execution stats
             exec_stats = self.execution_guardrails.get_execution_stats()

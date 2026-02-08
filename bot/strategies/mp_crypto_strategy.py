@@ -1,14 +1,14 @@
 """
-Vector Games Crypto Strategy
+Market Probability Crypto Strategy
 Tuned for BTC, ETH, XRP, DOGE, SHIB, TRUMP (24/7 crypto markets)
 
-Strategy adapts VG logic for:
+Strategy adapts MP logic for:
 - Crypto liquidity windows (Asia + London-NY overlap)
 - Meme coin protection (DOGE, SHIB, TRUMP)
 - Explosive volatility and fake breakouts
 - No kill zone time filter (crypto is 24/7)
 
-Created by Coach Zuri Aki - VG Framework
+Created by Coach Zuri Aki - MP Framework
 Crypto adaptation for Crypto.com exchange
 """
 
@@ -22,9 +22,9 @@ from ..utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class VGCryptoStrategy(BaseStrategy):
+class MPCryptoStrategy(BaseStrategy):
     """
-    Vector Games Crypto Strategy
+    Market Probability Crypto Strategy
     Tuned for BTC, ETH, XRP, DOGE, SHIB, TRUMP
     
     Core Mechanics:
@@ -50,7 +50,7 @@ class VGCryptoStrategy(BaseStrategy):
         self.entry_index = None
         self.cooldown = 0
 
-        logger.info(f"VGCryptoStrategy initialized for {self.symbol}")
+        logger.info(f"MPCryptoStrategy initialized for {self.symbol}")
 
     # -------- CRYPTO LIQUIDITY WINDOWS -------- #
 
@@ -109,7 +109,7 @@ class VGCryptoStrategy(BaseStrategy):
 
     def generate_signal(self, data: pd.DataFrame) -> str:
         """
-        VG Crypto Entry Logic
+        MP Crypto Entry Logic
         
         Filters:
         1. Liquidity window (UTC times)
@@ -185,7 +185,7 @@ class VGCryptoStrategy(BaseStrategy):
     def manage_trade(self, data: pd.DataFrame) -> str:
         """
         Exit Logic:
-        1. VG Checkpoint: Exit if price reverts to entry (micro loss)
+        1. MP Checkpoint: Exit if price reverts to entry (micro loss)
         2. Volatility Exhaustion: Exit if volatility spikes (>10%) - momentum exhausted
         
         Goal: Scale out early, limit exposure to chop/reversals
@@ -197,7 +197,7 @@ class VGCryptoStrategy(BaseStrategy):
         current_index = len(df) - 1
         candles_in_trade = current_index - self.entry_index
 
-        # -------- VG CHECKPOINT (micro loss exit) -------- #
+        # -------- MP CHECKPOINT (micro loss exit) -------- #
         # If 6+ candles and price back at entry → exit
         if candles_in_trade >= 6:
             entry_price = df["close"].iloc[self.entry_index]
@@ -245,4 +245,4 @@ def is_meme_coin(symbol: str) -> bool:
     return base in MEME_SYMBOLS
 
 
-__all__ = ["VGCryptoStrategy", "MEME_SYMBOLS", "is_meme_coin"]
+__all__ = ["MPCryptoStrategy", "MEME_SYMBOLS", "is_meme_coin"]

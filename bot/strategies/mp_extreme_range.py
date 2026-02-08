@@ -1,6 +1,6 @@
 """
-Vector Games (VG) Extreme Range Strategy
-Created for probabilistic VG-style execution
+Market Probability (MP) Extreme Range Strategy
+Created for probabilistic MP-style execution
 """
 
 import pandas as pd
@@ -13,9 +13,9 @@ from ..utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class VGExtremeRangeStrategy(BaseStrategy):
+class MPExtremeRangeStrategy(BaseStrategy):
     """
-    VG Strategy Logic:
+    MP Strategy Logic:
     - Trade ONLY at range extremes
     - Avoid middle of the box
     - Directional pressure filter
@@ -28,7 +28,7 @@ class VGExtremeRangeStrategy(BaseStrategy):
         self.range_lookback = self.parameters.get('range_lookback', 50)
         self.ema_period = self.parameters.get('ema_period', 20)
 
-        logger.info("VG Extreme Range Strategy initialized")
+        logger.info("MP Extreme Range Strategy initialized")
 
     def calculate_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
         df = data.copy()
@@ -41,7 +41,7 @@ class VGExtremeRangeStrategy(BaseStrategy):
         # Position in range (0 = bottom, 1 = top)
         df['range_position'] = (df['close'] - df['range_low']) / df['range']
 
-        # Directional pressure (VG-friendly)
+        # Directional pressure (MP-friendly)
         df['ema'] = df['close'].ewm(span=self.ema_period).mean()
         df['ema_slope'] = df['ema'] - df['ema'].shift(1)
 
@@ -70,17 +70,17 @@ class VGExtremeRangeStrategy(BaseStrategy):
         ema_slope = latest['ema_slope']
 
         # =========================
-        # VG BUY LOGIC (Bottom Edge)
+        # MP BUY LOGIC (Bottom Edge)
         # =========================
         if range_pos <= 0.2 and ema_slope >= 0:
-            logger.info("VG BUY: Bottom of range with upward pressure")
+            logger.info("MP BUY: Bottom of range with upward pressure")
             return 'BUY'
 
         # =========================
-        # VG SELL LOGIC (Top Edge)
+        # MP SELL LOGIC (Top Edge)
         # =========================
         if range_pos >= 0.8 and ema_slope <= 0:
-            logger.info("VG SELL: Top of range with downward pressure")
+            logger.info("MP SELL: Top of range with downward pressure")
             return 'SELL'
 
         # =========================

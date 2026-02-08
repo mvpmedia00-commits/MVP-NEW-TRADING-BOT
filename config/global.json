@@ -32,6 +32,12 @@
     "entry_zone_percent_memes": 15,
     "position_top_threshold": 0.85
   },
+  "lgm_indicators": {
+    "timezone": "US/Eastern",
+    "adr_lookback": 14,
+    "ema_fast": 20,
+    "ema_slow": 50
+  },
   "risk_management": {
     "max_position_size": 1000,
     "max_daily_loss": 500,
