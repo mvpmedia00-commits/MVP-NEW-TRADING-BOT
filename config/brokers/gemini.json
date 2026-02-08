@@ -5,7 +5,7 @@
   "description": "Gemini Exchange configuration",
   "api_credentials": {
     "api_key": "${GEMINI_API_KEY}",
-    "api_secret": "${GEMINI_API_SECRET}"
+    "api_secret": "${GEMINI_API_SECRET}",
     "passphrase": "",
     "additional_fields": {}
   },
