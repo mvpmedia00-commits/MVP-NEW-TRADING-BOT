@@ -579,19 +579,22 @@
                 let html = '';
                 
                 for (const symbol of SYMBOLS) {
-                    const response = await fetch(`${API_BASE}/ranges/${symbol}`);
+                    const encodedSymbol = encodeURIComponent(symbol);
+                    const response = await fetch(`${API_BASE}/ranges/${encodedSymbol}`);
                     const data = await response.json();
                     
                     if (data.error) continue;
                     
                     const volatility = data.volatility_pct || 0;
                     const position = (data.range_position || 0) * 100;
+                    const zoneName = (data.zone || 'UNKNOWN');
+                    const zoneClass = zoneName.toLowerCase().replace(/_/g, '-');
                     
                     html += `
                         <div style="padding: 10px 0; border-bottom: 1px solid rgba(76, 175, 80, 0.1);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                                 <strong>${symbol}</strong>
-                                <span class="zone-badge zone-${data.zone.toLowerCase().replace(/_/g, '-')}">${data.zone}</span>
+                                <span class="zone-badge zone-${zoneClass}">${zoneName}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #b0bec5; margin-bottom: 8px;">
                                 <span>Range: $${data.range_low?.toFixed(0) || 0} - $${data.range_high?.toFixed(0) || 0} | Vol: ${volatility.toFixed(1)}%</span>

@@ -6,6 +6,7 @@ import time
 import signal
 import sys
 import argparse
+import threading
 from typing import Dict, List, Any
 from datetime import datetime
 import pandas as pd
@@ -70,9 +71,10 @@ class TradingBot:
         self.update_interval = self.global_config.get('execution', {}).get('update_interval', 60)
         self._cycle_count = 0
         
-        # Setup signal handlers
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        # Setup signal handlers (main thread only)
+        if threading.current_thread() is threading.main_thread():
+            signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGTERM, self._signal_handler)
     
     def initialize(self) -> bool:
         """

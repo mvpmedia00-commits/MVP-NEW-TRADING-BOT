@@ -7,12 +7,16 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import os
+import threading
+
+from ..main import TradingBot
 
 from .routes import monitoring
 
 
 # Global references (will be set by main bot before starting server)
 _bot_instance = None
+_bot_thread = None
 
 
 def set_bot_instance(bot):
@@ -37,8 +41,25 @@ async def lifespan(app: FastAPI):
     """Lifespan context for startup and shutdown"""
     # Startup
     print("📊 API Server started - Monitoring endpoints available")
+    global _bot_instance, _bot_thread
+    autostart = os.getenv("BOT_AUTOSTART", "").lower() in {"1", "true", "yes"}
+    if autostart and _bot_instance is None:
+        _bot_instance = TradingBot()
+        if _bot_instance.initialize():
+            set_bot_instance(_bot_instance)
+            _bot_thread = threading.Thread(
+                target=_bot_instance.start,
+                kwargs={"test_connection_only": False},
+                daemon=True,
+            )
+            _bot_thread.start()
+            print("✅ Bot auto-started for API monitoring")
+        else:
+            print("❌ Bot auto-start failed - check logs")
     yield
     # Shutdown
+    if _bot_instance is not None:
+        _bot_instance.stop()
     print("📊 API Server shutdown")
 
 
